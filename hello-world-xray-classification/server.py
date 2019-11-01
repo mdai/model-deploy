@@ -70,19 +70,21 @@ def predict(x):
     Image.fromarray(smoothgrad_output).save(smoothgrad_output_buffer, format="PNG")
 
     result = {
-        "classIndex": int(class_index),
+        "class_index": int(class_index),
         "data": None,
         "probability": float(probability),
         "explanations": [
             {
                 "name": "Grad-CAM",
                 "description": "Visualize how parts of the image affects neural network’s output by looking into the activation maps. From _Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization_ (https://arxiv.org/abs/1610.02391)",
-                "file": gradcam_output_buffer.getvalue(),
+                "content": gradcam_output_buffer.getvalue(),
+                "content_type": "image/png",
             },
             {
                 "name": "SmoothGrad",
                 "description": "Visualize stabilized gradients on the inputs towards the decision. From _SmoothGrad: removing noise by adding noise_ (https://arxiv.org/abs/1706.03825)",
-                "file": smoothgrad_output_buffer.getvalue(),
+                "content": smoothgrad_output_buffer.getvalue(),
+                "content_type": "image/png",
             },
         ],
     }
@@ -99,20 +101,20 @@ def inference():
     {
         "instances": [
             {
-                "image": "bin"
+                "pixel_array": "bytes"
                 "tags": {
                     "StudyInstanceUID": "str",
                     "SeriesInstanceUID": "str",
                     "SOPInstanceUID": "str",
-                    // ...
+                    ...
                 }
             },
-            // ...
+            ...
         ],
         "args": {
             "arg1": "str",
             "arg2": "str",
-            // ...
+            ...
         }
     }
 
@@ -123,23 +125,24 @@ def inference():
 
     [
         {
-            "StudyInstanceUID": "str",
-            "SeriesInstanceUID": "str",
-            "SOPInstanceUID": "str",
-            "frameNumber": "int",
-            "classIndex": "int",
+            "study_uid": "str",
+            "series_uid": "str",
+            "instance_uid": "str",
+            "frame_number": "int",
+            "class_index": "int",
             "data": {},
             "probability": "float",
             "explanations": [
                 {
                     "name": "str",
                     "description": "str",
-                    "file": "bin",
+                    "content": "bytes",
+                    "content_type": "str",
                 },
-                // ...
+                ...
             ],
         },
-        // ...
+        ...
     ]
     """
     if not request.content_type == "application/msgpack":
@@ -154,12 +157,12 @@ def inference():
     for instance in input_instances:
         try:
             tags = instance["tags"]
-            image = np.load(BytesIO(instance["image"]))["image"]
+            image = np.load(BytesIO(instance["pixel_array"]))
             result = predict(prepare_input(image))
-            result["StudyInstanceUID"] = tags["StudyInstanceUID"]
-            result["SeriesInstanceUID"] = tags["SeriesInstanceUID"]
-            result["SOPInstanceUID"] = tags["SOPInstanceUID"]
-            result["frameNumber"] = None
+            result["study_uid"] = tags["StudyInstanceUID"]
+            result["series_uid"] = tags["SeriesInstanceUID"]
+            result["instance_uid"] = tags["SOPInstanceUID"]
+            result["frame_number"] = None
             results.append(result)
         except Exception as e:
             logging.exception(e)
