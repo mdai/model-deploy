@@ -1,4 +1,5 @@
-.vscode/
+.venv/
 .DS_Store
-*.h5
-.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+**/data/
+**/*.h5
