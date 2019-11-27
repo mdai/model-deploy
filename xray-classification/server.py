@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 import logging
@@ -60,7 +60,7 @@ def predict(x):
         model=model,
         layer_name="conv_pw_13_relu",
         class_index=class_index,
-        colormap=cv2.COLORMAP_MAGMA,
+        colormap=cv2.COLORMAP_TURBO,
     )
     gradcam_output_buffer = BytesIO()
     Image.fromarray(gradcam_output).save(gradcam_output_buffer, format="PNG")
