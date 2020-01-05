@@ -18,4 +18,4 @@ for f in $(ls ./**/requirements.txt); do pip install -r $f; done
 
 ---
 
-&copy; 2019 MD.ai, Inc.
+&copy; 2020 MD.ai, Inc.
