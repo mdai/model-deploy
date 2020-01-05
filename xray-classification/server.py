@@ -5,6 +5,7 @@ import logging
 from io import BytesIO
 import cv2
 import msgpack
+import pydicom
 import numpy as np
 import tensorflow as tf
 from flask import Flask, Response, abort, request
@@ -104,7 +105,7 @@ def inference():
     {
         "instances": [
             {
-                "pixel_array": "bytes"
+                "file": "bytes"
                 "tags": {
                     "StudyInstanceUID": "str",
                     "SeriesInstanceUID": "str",
@@ -121,8 +122,8 @@ def inference():
         }
     }
 
-    The image bytes is the raw binary data representing a numpy saved file, and can be loaded using
-    `np.load()`.
+    The `file bytes is the raw binary data representing a DICOM file, and can be loaded using
+    `pydicom.dcmread()`.
 
     The response body should be the msgpack-serialized binary data of the results:
 
@@ -160,7 +161,8 @@ def inference():
     for instance in input_instances:
         try:
             tags = instance["tags"]
-            image = np.load(BytesIO(instance["pixel_array"]))
+            ds = pydicom.dcmread(BytesIO(instance["file"]))
+            image = ds.pixel_array
             result = predict(prepare_input(image))
             result["study_uid"] = tags["StudyInstanceUID"]
             result["series_uid"] = tags["SeriesInstanceUID"]
