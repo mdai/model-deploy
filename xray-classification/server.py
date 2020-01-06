@@ -1,6 +1,3 @@
-__version__ = "0.1.1"
-
-
 import logging
 from io import BytesIO
 import cv2
