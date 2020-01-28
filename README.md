@@ -1,6 +1,8 @@
-# model-deploy-examples
+# model-deploy
 
-Example model deployments for training/testing/inference on MD.ai
+## Examples
+
+Example model deployments for training/testing/inference on MD.ai are located in the `examples/` folder.
 
 ## Development
 
