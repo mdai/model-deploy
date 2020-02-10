@@ -2,14 +2,14 @@ import sys
 import os
 import logging
 import msgpack
-from flask import Flask, Response, abort, request, jsonify
+from flask import Flask, Response, abort, request
 from waitress import serve
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
 
 mdai_model = None
-mdai_model_status = "PENDING"
+mdai_model_ready = False
 
 app = Flask(__name__)
 
@@ -83,25 +83,20 @@ def inference():
 
     data = msgpack.unpackb(request.get_data(), raw=False)
 
-    global mdai_model_status
+    global mdai_model_ready
 
     try:
-        mdai_model_status = "BUSY"
+        mdai_model_ready = False
         results = mdai_model.predict(data)
     except Exception as e:
         logging.exception(e)
         abort(500)
     finally:
-        mdai_model_status = "READY"
+        mdai_model_ready = True
 
     resp = Response(msgpack.packb(results, use_bin_type=True))
     resp.headers["Content-Type"] = "application/msgpack"
     return resp
-
-
-@app.route("/status", methods=["GET"])
-def status():
-    return jsonify({"status": mdai_model_status})
 
 
 @app.route("/healthz", methods=["GET"])
@@ -111,10 +106,20 @@ def healthz():
     return "", 200
 
 
+@app.route("/ready", methods=["GET"])
+def status():
+    """Route for Kubernetes readiness check.
+    """
+    if mdai_model_ready:
+        return "", 200
+    else:
+        return "", 503
+
+
 if __name__ == "__main__":
     from mdai_deploy import MDAIModel
 
     mdai_model = MDAIModel()
-    mdai_model_status = "READY"
+    mdai_model_ready = True
 
     serve(app, listen="*:6324")
