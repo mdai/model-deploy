@@ -15,7 +15,6 @@ source .venv/bin/activate
 
 # Install deps
 pip install -r requirements.txt
-for f in $(ls ./**/requirements.txt); do pip install -r $f; done
 ```
 
 ---

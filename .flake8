@@ -4,4 +4,4 @@ max-line-length = 100
 # E501 is the "Line too long" error. We disable it because we use Black for
 # code formatting. Black makes a best effort to keep lines under the max
 # length, but can go over in some cases.
-ignore = E501
+ignore = E501,F841
