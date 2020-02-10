@@ -115,5 +115,6 @@ if __name__ == "__main__":
     from mdai_deploy import MDAIModel
 
     mdai_model = MDAIModel()
+    mdai_model_status = "READY"
 
     serve(app, listen="*:6324")
