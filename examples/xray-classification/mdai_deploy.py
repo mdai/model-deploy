@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 import cv2
 import pydicom
@@ -10,7 +11,8 @@ from preprocess import preprocess_image
 
 class MDAIModel:
     def __init__(self):
-        self.model = tf.keras.models.load_model("./lib/model.h5")
+        modelpath = os.path.join(os.path.dirname(__file__), "model.h5")
+        self.model = tf.keras.models.load_model(modelpath)
 
     def predict(self, data):
         """
