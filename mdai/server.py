@@ -8,6 +8,9 @@ from waitress import serve
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
 
+logger = logging.getLogger("model")
+logger.setLevel(logging.INFO)
+
 mdai_model = None
 mdai_model_ready = False
 
@@ -89,7 +92,7 @@ def inference():
         mdai_model_ready = False
         results = mdai_model.predict(data)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         abort(500)
     finally:
         mdai_model_ready = True
