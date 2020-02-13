@@ -1,0 +1,8 @@
+numpy==1.18.1
+opencv-python==4.2.0.32
+pillow==7.0.0
+pydicom==1.4.1
+tensorflow==2.1.0
+tf-explain==0.2.0
+scikit-image==0.16.2
+keras-unet==0.0.7
