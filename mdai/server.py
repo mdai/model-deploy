@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+from threading import Lock
 import msgpack
 from flask import Flask, Response, abort, request
 from waitress import serve
@@ -13,6 +14,7 @@ logger.setLevel(logging.INFO)
 
 mdai_model = None
 mdai_model_ready = False
+mdai_model_lock = Lock()
 
 app = Flask(__name__)
 
@@ -86,16 +88,14 @@ def inference():
 
     data = msgpack.unpackb(request.get_data(), raw=False)
 
-    global mdai_model_ready
-
     try:
-        mdai_model_ready = False
+        mdai_model_lock.acquire()
         results = mdai_model.predict(data)
     except Exception as e:
         logger.exception(e)
         abort(500)
     finally:
-        mdai_model_ready = True
+        mdai_model_lock.release()
 
     resp = Response(msgpack.packb(results, use_bin_type=True))
     resp.headers["Content-Type"] = "application/msgpack"
@@ -113,7 +113,7 @@ def healthz():
 def status():
     """Route for Kubernetes readiness check.
     """
-    if mdai_model_ready:
+    if mdai_model_ready and not mdai_model_lock.locked():
         return "", 200
     else:
         return "", 503
@@ -125,4 +125,4 @@ if __name__ == "__main__":
     mdai_model = MDAIModel()
     mdai_model_ready = True
 
-    serve(app, listen="*:6324")
+    serve(app, listen="*:6324", threads=4)
