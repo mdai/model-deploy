@@ -110,10 +110,10 @@ def healthz():
 
 
 @app.route("/ready", methods=["GET"])
-def status():
+def ready():
     """Route for Kubernetes readiness check.
     """
-    if mdai_model_ready and not mdai_model_lock.locked():
+    if mdai_model_ready:
         return "", 200
     else:
         return "", 503
