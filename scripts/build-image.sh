@@ -5,7 +5,15 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 DOCKER_ENV=$1
 DOCKER_IMAGE=$2
-TARGET_DIR=$PWD/$3
+
+if [[ "$3" = /* ]]; then
+  # absolute path provided
+  TARGET_DIR=$3
+else
+  # relative path provided
+  TARGET_DIR=$PWD/$3
+fi
+
 DOCKERFILE_PATH="$DIR/../docker/$DOCKER_ENV/Dockerfile"
 
 cd $DIR/../mdai
