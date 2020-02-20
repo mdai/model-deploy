@@ -6,6 +6,8 @@ import json
 
 EXITED = 'exited'
 MODEL_NAME = "model-dev"
+KB_VALUE = 1000
+KIB_VALUE = 1024
 
 
 def getstats(container):
@@ -24,25 +26,42 @@ def getstats(container):
 
 
 def FormatMemory(memory):
+    if memory < KB_VALUE:
+        return FormatMemoryHelper(memory, KB_VALUE)
+    else:
+        return FormatMemoryHelper(memory, KB_VALUE) + " (" + FormatMemoryHelper(memory, KIB_VALUE) + ")"
+
+
+def FormatMemoryHelper(memory, divisor):
     count = 0
-    divisor = 1024
     while(memory // divisor > 0):
         memory = memory / divisor
         count += 1
 
     memory = round(memory, 2)
-    return str(memory) + " " + getprefix(count)
+    return str(memory) + getprefix(count, divisor)
 
 
-def getprefix(count):
-    suffixes = {
+def getprefix(count, divisor):
+    byte_suffixes = {
         0: "B",
         1: "KB",
         2: "MB",
         3: "GB",
         4: "TB"
     }
-    return suffixes[count]
+    ibyte_suffixes = {
+        0: "B",
+        1: "KiB",
+        2: "MiB",
+        3: "GiB",
+        4: "TiB"
+    }
+
+    if divisor == KB_VALUE:
+        return byte_suffixes[count]
+    else:
+        return ibyte_suffixes[count]
 
 
 if __name__ == "__main__":
