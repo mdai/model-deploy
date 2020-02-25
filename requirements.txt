@@ -2,6 +2,5 @@ flake8
 black
 docker
 msgpack
-json
 pydicom
 requests
