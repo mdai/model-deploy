@@ -4,52 +4,52 @@ import pydicom
 from io import BytesIO
 import msgpack
 
-PATH_DELIMITER = '/'
-DCM_EXTENSION = '.dcm'
+PATH_DELIMITER = "/"
+DCM_EXTENSION = ".dcm"
 
 
-def IsFolder(path):
+def is_folder(path):
     return os.path.isdir(path)
 
 
-def IsDicom(path):
+def is_dicom(path):
     return path.endswith(DCM_EXTENSION)
 
 
-def FileSearch(path):
-    if(not IsFolder(path)):
-        if(IsDicom(path)):
-            return[path]
+def file_search(path):
+    if not is_folder(path):
+        if is_dicom(path):
+            return [path]
         else:
             return []
 
     file_paths = []
     folder_queue = [path]
-    while(len(folder_queue) != 0):
+    while len(folder_queue) != 0:
         current_folder = folder_queue.pop(0)
 
         for path in listdir(current_folder):
             current_path = current_folder + PATH_DELIMITER + path
-            if(IsFolder(current_path)):
+            if is_folder(current_path):
                 folder_queue.append(current_path)
-            elif(IsDicom(current_path)):
+            elif is_dicom(current_path):
                 file_paths.append(current_path)
 
     return file_paths
 
 
-def ProcessData(path):
-    file_paths = FileSearch(path)
+def process_data(path):
+    file_paths = file_search(path)
     result = {}
     result["instances"] = []
     result["args"] = {}
     for path in file_paths:
-        result["instances"].append(ProcessFile(path))
+        result["instances"].append(process_file(path))
     return msgpack.packb(result)
 
 
-def ProcessFile(path):
-    with open(path, 'rb') as fp:
+def process_file(path):
+    with open(path, "rb") as fp:
         instance = {}
         file_content = fp.read()
         dicom_content = pydicom.read_file(BytesIO(file_content))
