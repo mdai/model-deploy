@@ -5,6 +5,7 @@ from threading import Lock
 import msgpack
 from flask import Flask, Response, abort, request
 from waitress import serve
+from outputvalidator import OutputValidator
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -87,10 +88,11 @@ def inference():
         abort(400)
 
     data = msgpack.unpackb(request.get_data(), raw=False)
-
     try:
         mdai_model_lock.acquire()
         results = mdai_model.predict(data)
+        output_validator = OutputValidator()
+        output_validator.validate(results)
     except Exception as e:
         logger.exception(e)
         abort(500)
