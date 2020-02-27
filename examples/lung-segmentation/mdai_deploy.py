@@ -10,7 +10,9 @@ from preprocess import preprocess_image
 
 class MDAIModel:
     def __init__(self):
-        self.model = tf.keras.models.load_model("./lib/lung_segmentation.h5", custom_objects={'iou': iou})
+        self.model = tf.keras.models.load_model(
+            "./lib/lung_segmentation.h5", custom_objects={"iou": iou}
+        )
 
     def predict(self, data):
         input_instances = data["instances"]
@@ -27,11 +29,11 @@ class MDAIModel:
             x, offset = preprocess_image(image)
             imgsize = x.shape[1]
 
-            mask  = self.model.predict(x)[0, :, :, 0] > 0.5
+            mask = self.model.predict(x)[0, :, :, 0] > 0.5
             mask = mask.astype(np.uint8)
 
             # Handle padding and resize
-            mask = mask[offset[0] : imgsize-offset[0], offset[1] : imgsize-offset[1]]
+            mask = mask[offset[0] : imgsize - offset[0], offset[1] : imgsize - offset[1]]
             mask = cv2.resize(mask, (original_dims[1], original_dims[0])).astype(np.uint8)
 
             # Will be a 3D array where each row contains one shape
@@ -46,8 +48,8 @@ class MDAIModel:
                 "instance_uid": tags["SOPInstanceUID"],
                 "frame_number": None,
                 "class_index": 0,
-                "data": { "vertices": vertices},
-           }
+                "data": {"vertices": vertices},
+            }
             results.append(result)
 
         return results
