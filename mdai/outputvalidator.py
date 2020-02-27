@@ -19,7 +19,7 @@ class OutputValidator:
             "frame_number": [int, type(None)],
             "class_index": int,
             "data": [dict, type(None)],
-            "probability": [int, float, type(None)],
+            "probability": [float, type(None)],
             "explanations": list,
         }
 
@@ -73,7 +73,7 @@ class OutputValidator:
             if not isinstance(output["data"][key], self.data_types[data_format][key]):
                 raise InvalidFormatException(
                     "Invalid data type for {} expected {}".format(
-                        type(output["data"][key], self.data_types[data_format][key])
+                        type(output["data"][key]), self.data_types[data_format][key]
                     )
                 )
 
