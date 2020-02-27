@@ -49,6 +49,8 @@ class MDAIModel:
                 "frame_number": None,
                 "class_index": 0,
                 "data": {"vertices": vertices},
+                "probability": None,
+                "explanations": [],
             }
             results.append(result)
 
