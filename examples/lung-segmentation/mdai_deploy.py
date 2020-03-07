@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 import cv2
 import pydicom
@@ -10,9 +11,8 @@ from preprocess import preprocess_image
 
 class MDAIModel:
     def __init__(self):
-        self.model = tf.keras.models.load_model(
-            "./lib/lung_segmentation.h5", custom_objects={"iou": iou}
-        )
+        modelpath = os.path.join(os.path.dirname(__file__), "model.h5")
+        self.model = tf.keras.models.load_model(modelpath, custom_objects={"iou": iou})
 
     def predict(self, data):
         input_instances = data["instances"]
@@ -33,25 +33,23 @@ class MDAIModel:
             mask = mask.astype(np.uint8)
 
             # Handle padding and resize
-            mask = mask[offset[0] : imgsize - offset[0], offset[1] : imgsize - offset[1]]
+            row_start, row_end = offset[0], imgsize - offset[0]
+            col_start, col_end = offset[1], imgsize - offset[1]
+            mask = mask[row_start:row_end, col_start:col_end]
             mask = cv2.resize(mask, (original_dims[1], original_dims[0])).astype(np.uint8)
 
-            # Will be a 3D array where each row contains one shape
-            vertices = []
+            # Each contour should create a new annotation model output
             for contour in find_contours(mask, 0):
-                vertices.append([[int(v[0]), int(v[1])] for v in contour])
+                data = {"vertices": [[(v[1]), (v[0])] for v in contour]}
 
-            result = {
-                "type": "ANNOTATION",
-                "study_uid": tags["StudyInstanceUID"],
-                "series_uid": tags["SeriesInstanceUID"],
-                "instance_uid": tags["SOPInstanceUID"],
-                "frame_number": None,
-                "class_index": 0,
-                "data": {"vertices": vertices},
-                "probability": None,
-                "explanations": [],
-            }
-            results.append(result)
+                result = {
+                    "type": "ANNOTATION",
+                    "study_uid": tags["StudyInstanceUID"],
+                    "series_uid": tags["SeriesInstanceUID"],
+                    "instance_uid": tags["SOPInstanceUID"],
+                    "class_index": 0,
+                    "data": data,
+                }
+                results.append(result)
 
         return results

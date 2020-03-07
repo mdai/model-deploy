@@ -1,5 +1,4 @@
 import numpy as np
-from PIL import Image
 import cv2
 
 IMAGE_SIZE = 128
@@ -28,8 +27,8 @@ def preprocess_image(image):
 
     resized_shape = (resized_shape[1], resized_shape[0])
     image_padded = np.zeros((IMAGE_SIZE, IMAGE_SIZE), dtype=np.uint8)
-    image_padded[
-        offset[0] : (offset[0] + resized_shape[0]), offset[1] : (offset[1] + resized_shape[1])
-    ] = image_resized
+    row_start, row_end = offset[0], offset[0] + resized_shape[0]
+    col_start, col_end = offset[1], offset[1] + resized_shape[1]
+    image_padded[row_start:row_end, col_start:col_end] = image_resized
 
     return image_padded[None, :, :, None], offset
