@@ -1,15 +1,54 @@
 #!/usr/bin/env python3
 
-from preprocess import process_data
 import sys
-import requests
 import os
 import json
-import msgpack
+from io import BytesIO
 from argparse import ArgumentParser
+import pydicom
+import msgpack
+import requests
 
 INFERENCE_ENDPOINT = "http://localhost:6324/inference"
 INDENT_SPACES = 4
+DCM_EXTENSION = ".dcm"
+
+
+def get_files(root):
+    """Yields all file paths recursively from root path, filtering on DICOM extension.
+    """
+    for item in os.scandir(root):
+        if item.is_file():
+            if os.path.splitext(item.path)[1] == DCM_EXTENSION:
+                yield item.path
+        elif item.is_dir():
+            yield from get_files(item.path)
+
+
+def process_file(path):
+    with open(path, "rb") as f:
+        instance = {}
+        file_content = f.read()
+        dicom_content = pydicom.read_file(BytesIO(file_content))
+
+        tags = {}
+        tags["StudyInstanceUID"] = dicom_content.StudyInstanceUID
+        tags["SeriesInstanceUID"] = dicom_content.SeriesInstanceUID
+        tags["SOPInstanceUID"] = dicom_content.SOPInstanceUID
+        instance["tags"] = tags
+        instance["file"] = file_content
+
+        return instance
+
+
+def process_data(path):
+    file_paths = list(get_files(path))
+    result = {}
+    result["instances"] = []
+    result["args"] = {}
+    for path in file_paths:
+        result["instances"].append(process_file(path))
+    return msgpack.packb(result)
 
 
 def make_inference(path):
