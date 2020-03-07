@@ -1,7 +1,7 @@
-flake8
 black
 docker
-pytest
+flake8
 msgpack
 pydicom
+pytest
 requests
