@@ -115,9 +115,7 @@ class MDAIModel:
                 "study_uid": tags["StudyInstanceUID"],
                 "series_uid": tags["SeriesInstanceUID"],
                 "instance_uid": tags["SOPInstanceUID"],
-                "frame_number": None,
                 "class_index": int(class_index),
-                "data": None,
                 "probability": float(probability),
                 "explanations": [
                     {

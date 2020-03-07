@@ -2,3 +2,6 @@ flake8
 black
 docker
 pytest
+msgpack
+pydicom
+requests
