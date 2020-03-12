@@ -5,7 +5,7 @@ from threading import Lock
 import msgpack
 from flask import Flask, Response, abort, request
 from waitress import serve
-from outputvalidator import OutputValidator
+from mdai.validation import OutputValidator
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -16,6 +16,8 @@ logger.setLevel(logging.INFO)
 mdai_model = None
 mdai_model_ready = False
 mdai_model_lock = Lock()
+
+output_validator = OutputValidator()
 
 app = Flask(__name__)
 
@@ -91,13 +93,17 @@ def inference():
     try:
         mdai_model_lock.acquire()
         results = mdai_model.predict(data)
-        output_validator = OutputValidator()
+    except Exception as e:
+        logger.exception(e)
+        return f"Error running model: {str(e)}", 500
+    finally:
+        mdai_model_lock.release()
+
+    try:
         output_validator.validate(results)
     except Exception as e:
         logger.exception(e)
-        abort(500)
-    finally:
-        mdai_model_lock.release()
+        return f"Invalid data format returned by model: {str(e)}", 500
 
     resp = Response(msgpack.packb(results, use_bin_type=True))
     resp.headers["Content-Type"] = "application/msgpack"

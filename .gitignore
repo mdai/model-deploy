@@ -3,3 +3,5 @@
 **/.ipynb_checkpoints/
 **/data/
 **/*.h5
+__pycache__/
+.pytest_cache/

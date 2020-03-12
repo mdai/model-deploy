@@ -1,5 +1,5 @@
-from output_validator import OutputValidator
-from output_validator import InvalidFormatException
+from mdai.validation import OutputValidator
+from mdai.validation import InvalidFormatException
 import pytest
 
 
@@ -11,7 +11,7 @@ class TestOutputValidator:
             "type": "ANNOTATION",
             "study_uid": "1.2.276.0.7230010.3.1.2.940180736.574.1534894495.485465",
             "series_uid": "1.2.276.0.7230010.3.1.3.940180736.574.1534894495.485464",
-            "instance_uid": "1.2.276.0.7230010.3.1.4.940180736.574.1534894495.485466.dcm",
+            "instance_uid": "1.2.276.0.7230010.3.1.4.940180736.574.1534894495.485466",
             "frame_number": None,
             "class_index": 0,
             "probability": None,
@@ -21,7 +21,7 @@ class TestOutputValidator:
 
     def test_missing(self):
         output = dict(self.sample_output)
-        for key in self.sample_output.keys():
+        for key in ["type", "study_uid", "class_index"]:
             value = output.pop(key, None)
             with pytest.raises(InvalidFormatException):
                 self.output_validator.validate([output])
@@ -51,17 +51,18 @@ class TestOutputValidator:
         invalid_values = {
             "type": [1, 0.1, None],
             "study_uid": [1, 0.1, None],
+            "series_uid": [1, 0.1],
+            "instance_uid": [1, 0.1],
             "frame_number": [0.1, "1"],
             "class_index": [5.5, "5", None],
             "probability": ["5"],
             "data": [[], 1, "50"],
-            "explanations": [None, {}],
+            "explanations": [{}, 1, "1"],
         }
         for key in invalid_values:
             for value in invalid_values[key]:
                 prev_value = output[key]
                 output[key] = value
-                print(key, value)
                 with pytest.raises(InvalidFormatException):
                     self.output_validator.validate([output])
                 output[key] = prev_value
@@ -81,7 +82,6 @@ class TestOutputValidator:
         key = "data"
 
         for data_field in invalid_data_fields:
-            print(data_field)
             prev_value = output[key]
             output[key] = data_field
             with pytest.raises(InvalidFormatException):
