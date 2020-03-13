@@ -95,7 +95,8 @@ def inference():
         results = mdai_model.predict(data)
     except Exception as e:
         logger.exception(e)
-        return f"Error running model: {str(e)}", 500
+        text = f"Error running model: {str(e)}"
+        return Response(text, status=500, mimetype="text/plain")
     finally:
         mdai_model_lock.release()
 
@@ -103,7 +104,8 @@ def inference():
         output_validator.validate(results)
     except Exception as e:
         logger.exception(e)
-        return f"Invalid data format returned by model: {str(e)}", 500
+        text = f"Invalid data format returned by model: {str(e)}"
+        return Response(text, status=500, mimetype="text/plain")
 
     resp = Response(msgpack.packb(results, use_bin_type=True))
     resp.headers["Content-Type"] = "application/msgpack"
