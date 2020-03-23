@@ -5,7 +5,7 @@ from threading import Lock
 import msgpack
 from flask import Flask, Response, abort, request
 from waitress import serve
-from mdai.validation import OutputValidator
+from validation import OutputValidator
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
