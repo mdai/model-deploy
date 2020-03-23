@@ -3,9 +3,16 @@ import os
 import logging
 from threading import Lock
 import msgpack
-from flask import Flask, Response, abort, request
-from waitress import serve
-from mdai.validation import OutputValidator
+from validation import OutputValidator
+from fastapi import FastAPI, HTTPException, Request, Response
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+from hypercorn.config import Config
+from hypercorn.asyncio import serve
+
+config = Config()
+config.bind = ["0.0.0.0:6324"]
+config.workers = 1
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -18,12 +25,13 @@ mdai_model_ready = False
 mdai_model_lock = Lock()
 
 output_validator = OutputValidator()
+executor = ThreadPoolExecutor(max_workers=1)
 
-app = Flask(__name__)
+app = FastAPI()
 
 
-@app.route("/inference", methods=["POST"])
-def inference():
+@app.post("/inference")
+async def inference(request: Request):
     """
     Route for model inference.
 
@@ -86,53 +94,66 @@ def inference():
 
     The DICOM UIDs must be supplied based on the scope of the label attached to `class_index`.
     """
-    if not request.content_type == "application/msgpack":
-        abort(400)
 
-    data = msgpack.unpackb(request.get_data(), raw=False)
-    try:
-        mdai_model_lock.acquire()
-        results = mdai_model.predict(data)
-    except Exception as e:
-        logger.exception(e)
-        text = f"Error running model: {str(e)}"
-        return Response(text, status=500, mimetype="text/plain")
-    finally:
-        mdai_model_lock.release()
+    loop = asyncio.get_event_loop()
 
-    try:
-        output_validator.validate(results)
-    except Exception as e:
-        logger.exception(e)
-        text = f"Invalid data format returned by model: {str(e)}"
-        return Response(text, status=500, mimetype="text/plain")
+    if not request.headers["content-type"] == "application/msgpack":
+        raise HTTPException(status_code=400)
+    body = await request.body()
 
-    resp = Response(msgpack.packb(results, use_bin_type=True))
-    resp.headers["Content-Type"] = "application/msgpack"
+    def _inference(body):
+        data = msgpack.unpackb(body, raw=False)
+
+        try:
+            mdai_model_lock.acquire()
+            results = mdai_model.predict(data)
+        except Exception as e:
+            logger.exception(e)
+            text = f"Error running model: {str(e)}"
+            headers = {"Content-Type": "text/plain"}
+            return Response(content=text, status_code=500, headers=headers)
+        finally:
+            mdai_model_lock.release()
+
+        try:
+            output_validator.validate(results)
+        except Exception as e:
+            logger.exception(e)
+            text = f"Invalid data format returned by model: {str(e)}"
+            headers = {"Content-Type": "text/plain"}
+            return Response(content=text, status_code=500, headers=headers)
+
+        headers = {"Content-Type": "application/msgpack"}
+        resp = Response(
+            status_code=200, content=msgpack.packb(results, use_bin_type=True), headers=headers
+        )
+        return resp
+
+    resp = await loop.run_in_executor(executor, _inference, body)
     return resp
 
 
-@app.route("/healthz", methods=["GET"])
+@app.get("/healthz")
 def healthz():
     """Route for Kubernetes liveness check.
     """
-    return "", 200
+    return Response(status_code=200, content="")
 
 
-@app.route("/ready", methods=["GET"])
+@app.get("/ready")
 def ready():
     """Route for Kubernetes readiness check.
     """
     if mdai_model_ready:
-        return "", 200
+        return Response(status_code=200, content="")
     else:
-        return "", 503
+        return Response(status_code=503, content="")
 
 
 if __name__ == "__main__":
+
     from mdai_deploy import MDAIModel
 
     mdai_model = MDAIModel()
     mdai_model_ready = True
-
-    serve(app, listen="*:6324", threads=4)
+    asyncio.run(serve(app, config))
