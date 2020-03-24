@@ -89,7 +89,7 @@ class OutputValidator:
             self.data_validators[data_format](result["data"])
 
     def validate_data_with_vertices(self, data):
-        VERTEX_TYPE = int
+        VERTEX_TYPE = [int, float]
         VERTEX_DIMENSIONS = 2
 
         vertices = data["vertices"]
@@ -105,7 +105,7 @@ class OutputValidator:
             )
 
         vertex = vertices[0]
-        if not type(vertex[0]) is VERTEX_TYPE or not type(vertex[1]) is VERTEX_TYPE:
+        if not type(vertex[0]) in VERTEX_TYPE or not type(vertex[1]) in VERTEX_TYPE:
             raise InvalidFormatException(
                 "Invalid vertex data type. Got {} Expected {}".format(
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
