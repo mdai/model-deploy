@@ -9,7 +9,7 @@ COPY lib/requirements.txt /src/lib/requirements.txt
 RUN pip install -r lib/requirements.txt
 
 COPY server.py /src/
-COPY outputvalidator.py /src/
+COPY validation.py /src/
 COPY lib /src/lib/
 
 RUN useradd docker

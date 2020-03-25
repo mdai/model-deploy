@@ -4,11 +4,13 @@ class InvalidFormatException(Exception):
 
 class OutputValidator:
     def __init__(self):
-        self.required_keys = (
-            "type",
-            "study_uid",
-            "class_index",
-        )
+        self.required_keys = {
+            "NONE": ["study_uid"],
+            "ANNOTATION": ["study_uid", "class_index"],
+            "IMAGE": ["study_uid"],
+            "DICOM": ["study_uid"],
+            "TEXT": ["study_uid"],
+        }
 
         # Dict for checking types, uses list if type can be one of multiple types
         self.types = {
@@ -46,24 +48,26 @@ class OutputValidator:
             self.validate_data(result)
 
     def validate_keys(self, result):
-        for key in self.required_keys:
+        if result.get("type") not in self.required_keys.keys():
+            raise InvalidFormatException("Invalid result type. Got {}".format(result.get("type")))
+        for key in self.required_keys[result["type"]]:
             if key not in result:
                 raise InvalidFormatException("Key {} not found in model output".format(key))
 
     def validate_types(self, result):
-        for key in self.types.keys():
+        for key in result.keys():
             expected_types = (
                 self.types[key] if isinstance(self.types[key], list) else [self.types[key]]
             )
-            if type(result[key]) not in expected_types:
+            if type(result.get(key)) not in expected_types:
                 raise InvalidFormatException(
                     "Incorrect type for key {} in model output. Expected {}, got {}".format(
-                        key, self.types[key], result[key]
+                        key, self.types[key], result.get(key)
                     )
                 )
 
     def validate_data(self, result):
-        if result["data"] is None:
+        if result.get("data") is None:
             return
         data_format = None
         for data_type in self.data_types.keys():
@@ -85,7 +89,7 @@ class OutputValidator:
             self.data_validators[data_format](result["data"])
 
     def validate_data_with_vertices(self, data):
-        VERTEX_TYPE = int
+        VERTEX_TYPE = [int, float]
         VERTEX_DIMENSIONS = 2
 
         vertices = data["vertices"]
@@ -101,7 +105,7 @@ class OutputValidator:
             )
 
         vertex = vertices[0]
-        if not type(vertex[0]) is VERTEX_TYPE or not type(vertex[1]) is VERTEX_TYPE:
+        if not type(vertex[0]) in VERTEX_TYPE or not type(vertex[1]) in VERTEX_TYPE:
             raise InvalidFormatException(
                 "Invalid vertex data type. Got {} Expected {}".format(
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
