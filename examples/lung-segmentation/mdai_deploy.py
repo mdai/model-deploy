@@ -40,7 +40,7 @@ class MDAIModel:
 
             # Each contour should create a new annotation model output
             for contour in find_contours(mask, 0):
-                data = {"vertices": [[(v[1]), (v[0])] for v in contour]}
+                data = {"vertices": [[(v[1]), (v[0])] for v in contour.tolist()]}
 
                 result = {
                     "type": "ANNOTATION",
