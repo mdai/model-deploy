@@ -3,16 +3,13 @@ import os
 import logging
 from threading import Lock
 import msgpack
-from validation import OutputValidator
 from fastapi import FastAPI, HTTPException, Request, Response
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
-config = Config()
-config.bind = ["0.0.0.0:6324"]
-config.workers = 1
+from validation import OutputValidator
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -156,4 +153,9 @@ if __name__ == "__main__":
 
     mdai_model = MDAIModel()
     mdai_model_ready = True
+        
+    config = Config()
+    config.bind = ["0.0.0.0:6324"]
+    config.workers = 1
+    
     asyncio.run(serve(app, config))
