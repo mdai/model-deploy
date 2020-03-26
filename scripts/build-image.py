@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-import docker
-from argparse import ArgumentParser
 import os
+from argparse import ArgumentParser
 from shutil import copyfile, copytree, rmtree
-import sys
+import docker
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -27,24 +26,30 @@ if __name__ == "__main__":
     docker_image = args.image_name
     target_folder = os.path.abspath(args.target_folder)
 
-    os.chdir("/".join((BASE_DIRECTORY, "mdai")))
+    os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
-    src_dockerfile = "/".join((BASE_DIRECTORY, "docker", docker_env, "Dockerfile"))
+    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
     dest_dockerfile = "./Dockerfile"
+    print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
     copyfile(src_dockerfile, dest_dockerfile)
 
     src_lib = target_folder
     dest_lib = "./lib"
+    print(f"\nCopying target dir from {src_lib} to {dest_lib} ...")
     copytree(src_lib, dest_lib)
 
     try:
-        client.images.build(path=".", tag=docker_image, quiet=False)
-    except docker.errors.BuildError as e:
-        print("Build Error: {}".format(e))
-        for line in e.build_log:
-            if "stream" in line:
-                print(line["stream"].strip(), file=sys.stderr)
+        print(f"\nBuilding docker image {docker_image} ...\n")
+        response = client.api.build(path=".", tag=docker_image, quiet=False, decode=True)
+        for line in response:
+            if list(line.keys())[0] in ("stream", "error"):
+                value = list(line.values())[0]
+                if value:
+                    print(value.strip())
+    except docker.errors.APIError as e:
+        print("\nBuild Error: {}".format(e))
     finally:
+        print("\nRemoving copied files...")
         os.remove(dest_dockerfile)
         rmtree(dest_lib)
         os.chdir(cwd)
