@@ -1,4 +1,4 @@
 base_image: py37
 paths:
     mdai_folder: .
-    model_folder: .
+    model_folder: ..
