@@ -1,6 +1,0 @@
-numpy==1.18.1
-opencv-python==4.2.0.32
-pillow==7.0.0
-pydicom==1.4.2
-tensorflow==2.1.0
-tf-explain==0.2.1
