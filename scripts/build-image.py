@@ -47,12 +47,12 @@ if __name__ == "__main__":
         target_folder = os.path.abspath(args.target_folder)
 
         if args.mdai_folder is None:  # If None, defaults to root of target folder
-            mdai_folder = target_folder
+            mdai_folder = os.path.join(target_folder, ".mdai")
         else:
             mdai_folder = os.path.abspath(args.mdai_folder)
 
     docker_image = args.image_name
-
+    relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
     src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
@@ -67,7 +67,10 @@ if __name__ == "__main__":
 
     try:
         print(f"\nBuilding docker image {docker_image} ...\n")
-        response = client.api.build(path=".", tag=docker_image, quiet=False, decode=True)
+        build_dict = {"MDAI_PATH": relative_mdai_folder}
+        response = client.api.build(
+            path=".", tag=docker_image, quiet=False, decode=True, buildargs=build_dict
+        )
         for line in response:
             if list(line.keys())[0] in ("stream", "error"):
                 value = list(line.values())[0]
