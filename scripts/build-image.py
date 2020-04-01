@@ -29,7 +29,23 @@ if __name__ == "__main__":
 
     args = parse_arguments()
     config_file = args.config_file
+    docker_env = args.docker_env
 
+    if config_file is None:
+        target_folder = os.path.abspath(args.target_folder)
+
+        if args.mdai_folder is None:  # If None, defaults to .mdai directory of target folder
+            mdai_folder = os.path.join(target_folder, ".mdai")
+        else:
+            mdai_folder = os.path.abspath(args.mdai_folder)
+
+        config_path = os.path.join(mdai_folder, "config.yaml")
+
+        # Detect config file if exists
+        if os.path.exists(config_path):
+            config_file = config_path
+
+    # Prioritize config file values if it exists
     if config_file is not None:
         config_file = os.path.abspath(config_file)
         parent_dir = os.path.dirname(config_file)
@@ -42,17 +58,9 @@ if __name__ == "__main__":
             mdai_folder = os.path.abspath(data["paths"]["mdai_folder"])
 
         os.chdir(cwd)
-    else:
-        docker_env = args.docker_env
-        target_folder = os.path.abspath(args.target_folder)
-
-        if args.mdai_folder is None:  # If None, defaults to root of target folder
-            mdai_folder = target_folder
-        else:
-            mdai_folder = os.path.abspath(args.mdai_folder)
 
     docker_image = args.image_name
-
+    relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
     src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
@@ -67,7 +75,10 @@ if __name__ == "__main__":
 
     try:
         print(f"\nBuilding docker image {docker_image} ...\n")
-        response = client.api.build(path=".", tag=docker_image, quiet=False, decode=True)
+        build_dict = {"MDAI_PATH": relative_mdai_folder}
+        response = client.api.build(
+            path=".", tag=docker_image, quiet=False, decode=True, buildargs=build_dict
+        )
         for line in response:
             if list(line.keys())[0] in ("stream", "error"):
                 value = list(line.values())[0]

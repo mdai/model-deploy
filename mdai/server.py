@@ -13,6 +13,8 @@ from validation import OutputValidator
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
+MDAI_PATH = os.path.join(LIB_PATH, os.environ["MDAI_PATH"])
+sys.path.insert(1, MDAI_PATH)
 
 logger = logging.getLogger("model")
 logger.setLevel(logging.INFO)
@@ -153,9 +155,9 @@ if __name__ == "__main__":
 
     mdai_model = MDAIModel()
     mdai_model_ready = True
-        
+
     config = Config()
     config.bind = ["0.0.0.0:6324"]
     config.workers = 1
-    
+
     asyncio.run(serve(app, config))

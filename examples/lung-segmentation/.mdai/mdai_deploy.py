@@ -11,7 +11,7 @@ from preprocess import preprocess_image
 
 class MDAIModel:
     def __init__(self):
-        modelpath = os.path.join(os.path.dirname(__file__), "model.h5")
+        modelpath = os.path.join(os.path.dirname(__file__), "..", "model.h5")
         self.model = tf.keras.models.load_model(modelpath, custom_objects={"iou": iou})
 
     def predict(self, data):
