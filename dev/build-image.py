@@ -36,32 +36,6 @@ def copy_dockerfile(docker_env):
     return dest_dockerfile
 
 
-def hot_reload_copy(target_folder, docker_env, mdai_folder):
-
-    dest_dockerfile = copy_dockerfile(docker_env)
-
-    src_executable = os.path.join(BASE_DIRECTORY, "dev", "main.sh")
-    dest_executable = "main.sh"
-    print(f"\nCopying executable dir from {src_executable} to {dest_executable} ...")
-    copyfile(src_executable, dest_executable)
-
-    src_model_requirements = os.path.join(target_folder, "requirements.txt")
-    dest_model_requirements = "model-requirements.txt"
-    print(f"\nCopying requirements from {src_model_requirements} to {dest_model_requirements} ...")
-    copyfile(src_model_requirements, dest_model_requirements)
-
-    src_mdai_requirements = os.path.join(mdai_folder, "requirements.txt")
-    print(src_mdai_requirements, flush=True)
-    dest_mdai_requirements = "mdai-requirements.txt"
-    print(
-        f"\nCopying mdai requirements from {src_mdai_requirements} to {dest_mdai_requirements} ..."
-    )
-    copyfile(src_mdai_requirements, dest_mdai_requirements)
-
-    copies = [dest_dockerfile, dest_executable, dest_mdai_requirements, dest_model_requirements]
-    return [os.path.abspath(file_copy) for file_copy in copies]
-
-
 def standard_copy(target_folder, docker_env):
 
     dest_dockerfile = copy_dockerfile(docker_env)
@@ -71,7 +45,12 @@ def standard_copy(target_folder, docker_env):
     print(f"\nCopying target dir from {src_lib} to {dest_lib} ...")
     copytree(src_lib, dest_lib)
 
-    copies = [dest_dockerfile, dest_lib]
+    src_executable = os.path.join(BASE_DIRECTORY, "dev", "main.sh")
+    dest_executable = "main.sh"
+    print(f"\nCopying executable dir from {src_executable} to {dest_executable} ...")
+    copyfile(src_executable, dest_executable)
+
+    copies = [dest_dockerfile, dest_lib, dest_executable]
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
@@ -125,10 +104,7 @@ if __name__ == "__main__":
 
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
-    if hot_reload:
-        copies = hot_reload_copy(target_folder, docker_env, mdai_folder)
-    else:
-        copies = standard_copy(target_folder, docker_env)
+    copies = standard_copy(target_folder, docker_env)
 
     with open(INFO_FILE, "w") as f:
         info = {"model_path": target_folder}

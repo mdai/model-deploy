@@ -6,21 +6,21 @@ ARG MDAI_PATH
 COPY requirements.txt /src/requirements.txt
 RUN pip install -r requirements.txt
 
-COPY ./model-requirements.txt /src/model-requirements.txt
+COPY lib/requirements.txt /src/model-requirements.txt
 RUN pip install -r model-requirements.txt
 
-COPY ./mdai-requirements.txt /src/mdai-requirements.txt
-RUN pip install -r /src/mdai-requirements.txt
+COPY lib/${MDAI_PATH}/requirements.txt /src/mdai-requirements.txt
+RUN pip install -r mdai-requirements.txt
 
 COPY server.py /src/
-COPY main.sh /src/
 COPY validation.py /src/
+ENV MDAI_PATH=${MDAI_PATH}
 
+COPY main.sh /src/
 RUN ["chmod", "+x", "/src/main.sh"]
 RUN apt-get update
 RUN apt-get install -y inotify-tools
 
-ENV MDAI_PATH=${MDAI_PATH}
 RUN useradd docker
 USER docker
 
