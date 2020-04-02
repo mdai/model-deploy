@@ -8,6 +8,11 @@ import yaml
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+placeholder_values = {
+    "--COPY--": ["COPY lib /src/lib/"],
+    "--COMMAND--": ['CMD ["python", "server.py"]'],
+}
+
 
 def parse_arguments():
     parser = ArgumentParser(description="Build docker image for model deployment")
@@ -21,6 +26,37 @@ def parse_arguments():
     group.add_argument("--config_file", type=str, help="path to yaml config file", default=None)
     args = parser.parse_args()
     return args
+
+
+def replace_lines(infile, outfile, replace_dict):
+    for line in infile:
+        key = line.rstrip()
+        if key in replace_dict:
+            outfile.write("\n".join(replace_dict[key]))
+        else:
+            outfile.write(line)
+
+
+def process_dockerfile(docker_env):
+    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile.template")
+    dest_dockerfile = "./Dockerfile"
+    print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
+    with open(src_dockerfile, "r") as infile, open(dest_dockerfile, "w") as outfile:
+        replace_lines(infile, outfile, placeholder_values)
+    return dest_dockerfile
+
+
+def standard_copy(target_folder, docker_env):
+
+    dest_dockerfile = process_dockerfile(docker_env)
+
+    src_lib = target_folder
+    dest_lib = "./lib"
+    print(f"\nCopying target dir from {src_lib} to {dest_lib} ...")
+    copytree(src_lib, dest_lib)
+
+    copies = [dest_lib]
+    return [os.path.abspath(file_copy) for file_copy in copies]
 
 
 if __name__ == "__main__":
@@ -63,15 +99,7 @@ if __name__ == "__main__":
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
-    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
-    dest_dockerfile = "./Dockerfile"
-    print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
-    copyfile(src_dockerfile, dest_dockerfile)
-
-    src_lib = target_folder
-    dest_lib = "./lib"
-    print(f"\nCopying target dir from {src_lib} to {dest_lib} ...")
-    copytree(src_lib, dest_lib)
+    copies = standard_copy(target_folder, docker_env)
 
     try:
         print(f"\nBuilding docker image {docker_image} ...\n")
@@ -88,6 +116,9 @@ if __name__ == "__main__":
         print("\nBuild Error: {}".format(e))
     finally:
         print("\nRemoving copied files...")
-        os.remove(dest_dockerfile)
-        rmtree(dest_lib)
+        for file_copy in copies:
+            if os.path.isdir(file_copy):
+                rmtree(file_copy)
+            else:
+                os.remove(file_copy)
         os.chdir(cwd)

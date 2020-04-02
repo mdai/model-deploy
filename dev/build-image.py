@@ -11,6 +11,26 @@ BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 INFO_FILE = "/tmp/mdai-model.info"
 
 
+placeholder_values = {
+    "--COPY--": [
+        "COPY main.sh /src/",
+        'RUN ["chmod", "+x", "/src/main.sh"]',
+        "RUN apt-get update",
+        "RUN apt-get install -y inotify-tools",
+    ],
+    "--COMMAND--": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
+}
+
+
+def replace_lines(infile, outfile, replace_dict):
+    for line in infile:
+        key = line.rstrip()
+        if key in replace_dict:
+            outfile.write("\n".join(replace_dict[key]))
+        else:
+            outfile.write(line)
+
+
 def parse_arguments():
     parser = ArgumentParser(description="Build docker image for model deployment")
     parser.add_argument("--image_name", type=str, help="Name of docker output image", required=True)
@@ -28,17 +48,18 @@ def parse_arguments():
     return args
 
 
-def copy_dockerfile(docker_env):
-    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
+def process_dockerfile(docker_env):
+    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile.template")
     dest_dockerfile = "./Dockerfile"
     print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
-    copyfile(src_dockerfile, dest_dockerfile)
+    with open(src_dockerfile, "r") as infile, open(dest_dockerfile, "w") as outfile:
+        replace_lines(infile, outfile, placeholder_values)
     return dest_dockerfile
 
 
 def standard_copy(target_folder, docker_env):
 
-    dest_dockerfile = copy_dockerfile(docker_env)
+    dest_dockerfile = process_dockerfile(docker_env)
 
     src_lib = target_folder
     dest_lib = "./lib"
@@ -93,15 +114,6 @@ if __name__ == "__main__":
 
     docker_image = args.image_name
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
-    os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-
-    if hot_reload:
-        if docker_env == "py37":
-            docker_env = "py37-dev"
-        else:
-            print("environment does not support hot reload")
-            exit()
-
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
     copies = standard_copy(target_folder, docker_env)
