@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from shutil import copyfile, copytree, rmtree
 import docker
 import json
+import yaml
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 INFO_FILE = "/tmp/mdai-model.info"
@@ -13,8 +14,13 @@ INFO_FILE = "/tmp/mdai-model.info"
 def parse_arguments():
     parser = ArgumentParser(description="Build docker image for model deployment")
     parser.add_argument("--image_name", type=str, help="Name of docker output image", required=True)
-    parser.add_argument("--target_folder", type=str, help="path of model folder", required=True)
     parser.add_argument("--docker_env", type=str, help="Docker environment to use", default="py37")
+    parser.add_argument(
+        "--mdai_folder", type=str, help="path of mdai deployment folder", default=None
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--target_folder", type=str, help="path of model folder", default=None)
+    group.add_argument("--config_file", type=str, help="path to yaml config file", default=None)
     parser.add_argument(
         "--hot-reload", action="store_true", help="allows model files to be hot reloaded"
     )
@@ -30,7 +36,7 @@ def copy_dockerfile(docker_env):
     return dest_dockerfile
 
 
-def hot_reload_copy(target_folder, docker_env):
+def hot_reload_copy(target_folder, docker_env, mdai_folder):
 
     dest_dockerfile = copy_dockerfile(docker_env)
 
@@ -39,12 +45,20 @@ def hot_reload_copy(target_folder, docker_env):
     print(f"\nCopying executable dir from {src_executable} to {dest_executable} ...")
     copyfile(src_executable, dest_executable)
 
-    src_requirements = os.path.join(target_folder, "requirements.txt")
-    dest_requirements = "model-requirements.txt"
-    print(f"\nCopying requirements from {src_requirements} to {dest_requirements} ...")
-    copyfile(src_requirements, dest_requirements)
+    src_model_requirements = os.path.join(target_folder, "requirements.txt")
+    dest_model_requirements = "model-requirements.txt"
+    print(f"\nCopying requirements from {src_model_requirements} to {dest_model_requirements} ...")
+    copyfile(src_model_requirements, dest_model_requirements)
 
-    copies = [dest_dockerfile, dest_executable, dest_requirements]
+    src_mdai_requirements = os.path.join(mdai_folder, "requirements.txt")
+    print(src_mdai_requirements, flush=True)
+    dest_mdai_requirements = "mdai-requirements.txt"
+    print(
+        f"\nCopying mdai requirements from {src_mdai_requirements} to {dest_mdai_requirements} ..."
+    )
+    copyfile(src_mdai_requirements, dest_mdai_requirements)
+
+    copies = [dest_dockerfile, dest_executable, dest_mdai_requirements, dest_model_requirements]
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
@@ -66,10 +80,41 @@ if __name__ == "__main__":
     cwd = os.getcwd()
 
     args = parse_arguments()
+    config_file = args.config_file
     docker_env = args.docker_env
-    docker_image = args.image_name
     hot_reload = args.hot_reload
-    target_folder = os.path.abspath(args.target_folder)
+
+    if config_file is None:
+        target_folder = os.path.abspath(args.target_folder)
+
+        if args.mdai_folder is None:  # If None, defaults to .mdai directory of target folder
+            mdai_folder = os.path.join(target_folder, ".mdai")
+        else:
+            mdai_folder = os.path.abspath(args.mdai_folder)
+
+        config_path = os.path.join(mdai_folder, "config.yaml")
+
+        # Detect config file if exists
+        if os.path.exists(config_path):
+            config_file = config_path
+
+    # Prioritize config file values if it exists
+    if config_file is not None:
+        config_file = os.path.abspath(config_file)
+        parent_dir = os.path.dirname(config_file)
+        os.chdir(parent_dir)
+
+        with open(config_file, "r") as stream:
+            data = yaml.safe_load(stream)
+            docker_env = data["base_image"]
+            target_folder = os.path.abspath(data["paths"]["model_folder"])
+            mdai_folder = os.path.abspath(data["paths"]["mdai_folder"])
+
+        os.chdir(cwd)
+
+    docker_image = args.image_name
+    relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
+    os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
     if hot_reload:
         if docker_env == "py37":
@@ -81,7 +126,7 @@ if __name__ == "__main__":
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
 
     if hot_reload:
-        copies = hot_reload_copy(target_folder, docker_env)
+        copies = hot_reload_copy(target_folder, docker_env, mdai_folder)
     else:
         copies = standard_copy(target_folder, docker_env)
 
@@ -95,7 +140,10 @@ if __name__ == "__main__":
 
     try:
         print(f"\nBuilding docker image {docker_image} ...\n")
-        response = client.api.build(path=".", tag=docker_image, quiet=False, decode=True)
+        build_dict = {"MDAI_PATH": relative_mdai_folder}
+        response = client.api.build(
+            path=".", tag=docker_image, quiet=False, decode=True, buildargs=build_dict
+        )
         for line in response:
             if list(line.keys())[0] in ("stream", "error"):
                 value = list(line.values())[0]
