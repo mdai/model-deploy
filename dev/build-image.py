@@ -2,16 +2,18 @@
 
 import os
 from argparse import ArgumentParser
-from shutil import copyfile, copytree, rmtree
+from shutil import copyfile, copytree
 import docker
 import json
-import yaml
+import sys
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 INFO_FILE = "/tmp/mdai-model.info"
 
+HELPER_DIR = os.path.join(BASE_DIRECTORY, "scripts")
+sys.path.insert(0, HELPER_DIR)
 
-placeholder_values = {
+hot_reload_values = {
     "--COPY--": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
@@ -20,15 +22,6 @@ placeholder_values = {
     ],
     "--COMMAND--": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
 }
-
-
-def replace_lines(infile, outfile, replace_dict):
-    for line in infile:
-        key = line.rstrip()
-        if key in replace_dict:
-            outfile.write("\n".join(replace_dict[key]))
-        else:
-            outfile.write(line)
 
 
 def parse_arguments():
@@ -48,18 +41,13 @@ def parse_arguments():
     return args
 
 
-def process_dockerfile(docker_env):
-    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile.template")
-    dest_dockerfile = "./Dockerfile"
-    print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
-    with open(src_dockerfile, "r") as infile, open(dest_dockerfile, "w") as outfile:
-        replace_lines(infile, outfile, placeholder_values)
-    return dest_dockerfile
+def copy_files(target_folder, docker_env, hot_reload):
+    if hot_reload:
+        placeholder_values = hot_reload_values
+    else:
+        placeholder_values = helper.PLACEHOLDER_VALUES
 
-
-def standard_copy(target_folder, docker_env):
-
-    dest_dockerfile = process_dockerfile(docker_env)
+    dest_dockerfile = helper.process_dockerfile(docker_env, placeholder_values)
 
     src_lib = target_folder
     dest_lib = "./lib"
@@ -76,23 +64,19 @@ def standard_copy(target_folder, docker_env):
 
 
 if __name__ == "__main__":
+    import helper
+
     client = docker.from_env()
     cwd = os.getcwd()
 
     args = parse_arguments()
+    hot_reload = args.hot_reload
     config_file = args.config_file
     docker_env = args.docker_env
-    hot_reload = args.hot_reload
+    docker_image = args.image_name
 
     if config_file is None:
-        target_folder = os.path.abspath(args.target_folder)
-
-        if args.mdai_folder is None:  # If None, defaults to .mdai directory of target folder
-            mdai_folder = os.path.join(target_folder, ".mdai")
-        else:
-            mdai_folder = os.path.abspath(args.mdai_folder)
-
-        config_path = os.path.join(mdai_folder, "config.yaml")
+        target_folder, mdai_folder, config_path = helper.get_paths(args)
 
         # Detect config file if exists
         if os.path.exists(config_path):
@@ -100,23 +84,11 @@ if __name__ == "__main__":
 
     # Prioritize config file values if it exists
     if config_file is not None:
-        config_file = os.path.abspath(config_file)
-        parent_dir = os.path.dirname(config_file)
-        os.chdir(parent_dir)
+        docker_env, target_folder, mdai_folder = helper.process_config_file(config_file)
 
-        with open(config_file, "r") as stream:
-            data = yaml.safe_load(stream)
-            docker_env = data["base_image"]
-            target_folder = os.path.abspath(data["paths"]["model_folder"])
-            mdai_folder = os.path.abspath(data["paths"]["mdai_folder"])
-
-        os.chdir(cwd)
-
-    docker_image = args.image_name
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-
-    copies = standard_copy(target_folder, docker_env)
+    copies = copy_files(target_folder, docker_env, hot_reload)
 
     with open(INFO_FILE, "w") as f:
         info = {"model_path": target_folder}
@@ -127,23 +99,9 @@ if __name__ == "__main__":
         f.write(json.dumps(info))
 
     try:
-        print(f"\nBuilding docker image {docker_image} ...\n")
-        build_dict = {"MDAI_PATH": relative_mdai_folder}
-        response = client.api.build(
-            path=".", tag=docker_image, quiet=False, decode=True, buildargs=build_dict
-        )
-        for line in response:
-            if list(line.keys())[0] in ("stream", "error"):
-                value = list(line.values())[0]
-                if value:
-                    print(value.strip())
-    except docker.errors.APIError as e:
+        helper.build_image(client, docker_image, relative_mdai_folder)
+    except docker.errors as e:
         print("\nBuild Error: {}".format(e))
     finally:
-        print("\nRemoving copied files...")
-        for file_copy in copies:
-            if os.path.isdir(file_copy):
-                rmtree(file_copy)
-            else:
-                os.remove(file_copy)
+        helper.remove_files(copies)
         os.chdir(cwd)
