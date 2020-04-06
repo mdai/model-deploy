@@ -6,9 +6,9 @@ from shutil import rmtree
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 PLACEHOLDER_VALUES = {
-    "--COPY--": ["COPY lib /src/lib/"],
-    "--COMMAND--": ['CMD ["python", "server.py"]'],
-    "--ENV--": [],
+    "{{COPY}}": ["COPY lib /src/lib/"],
+    "{{COMMAND}}": ['CMD ["python", "server.py"]'],
+    "{{ENV}}": [],
 }
 
 
@@ -83,7 +83,7 @@ def build_image(client, docker_image, relative_mdai_folder):
 
 
 def add_env_variables(placeholder_values, env_variables):
-    ENV = "--ENV--"
+    ENV = "{{ENV}}"
     print(placeholder_values)
     if env_variables is None:
         return
