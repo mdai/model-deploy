@@ -21,6 +21,7 @@ hot_reload_values = {
         "RUN apt-get install -y inotify-tools",
     ],
     "--COMMAND--": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
+    "--ENV--": [],
 }
 
 
@@ -41,12 +42,7 @@ def parse_arguments():
     return args
 
 
-def copy_files(target_folder, docker_env, hot_reload):
-    if hot_reload:
-        placeholder_values = hot_reload_values
-    else:
-        placeholder_values = helper.PLACEHOLDER_VALUES
-
+def copy_files(target_folder, docker_env, placeholder_values):
     dest_dockerfile = helper.process_dockerfile(docker_env, placeholder_values)
 
     src_lib = target_folder
@@ -74,6 +70,7 @@ if __name__ == "__main__":
     config_file = args.config_file
     docker_env = args.docker_env
     docker_image = args.image_name
+    env = None
 
     if config_file is None:
         target_folder, mdai_folder, config_path = helper.get_paths(args)
@@ -84,11 +81,17 @@ if __name__ == "__main__":
 
     # Prioritize config file values if it exists
     if config_file is not None:
-        docker_env, target_folder, mdai_folder = helper.process_config_file(config_file)
+        docker_env, target_folder, mdai_folder, env = helper.process_config_file(config_file)
 
+    if hot_reload:
+        placeholder_values = hot_reload_values
+    else:
+        placeholder_values = helper.PLACEHOLDER_VALUES
+
+    helper.add_env_variables(placeholder_values, env)
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-    copies = copy_files(target_folder, docker_env, hot_reload)
+    copies = copy_files(target_folder, docker_env, placeholder_values)
 
     with open(INFO_FILE, "w") as f:
         info = {"model_path": target_folder}
