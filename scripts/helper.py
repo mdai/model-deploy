@@ -8,6 +8,7 @@ BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 PLACEHOLDER_VALUES = {
     "--COPY--": ["COPY lib /src/lib/"],
     "--COMMAND--": ['CMD ["python", "server.py"]'],
+    "--ENV--": [],
 }
 
 
@@ -40,9 +41,10 @@ def process_config_file(config_file):
         docker_env = data["base_image"]
         target_folder = os.path.abspath(data["paths"]["model_folder"])
         mdai_folder = os.path.abspath(data["paths"]["mdai_folder"])
+        env = data.get("env")
 
         os.chdir(cwd)
-    return docker_env, target_folder, mdai_folder
+    return docker_env, target_folder, mdai_folder, env
 
 
 def get_paths(args):
@@ -78,3 +80,15 @@ def build_image(client, docker_image, relative_mdai_folder):
             value = list(line.values())[0]
             if value:
                 print(value.strip())
+
+
+def add_env_variables(placeholder_values, env_variables):
+    ENV = "--ENV--"
+    print(placeholder_values)
+    if env_variables is None:
+        return
+    for key in env_variables:
+        arg_string = f"ARG {key}"
+        env_string = f"ENV {key}={env_variables[key]}"
+        placeholder_values[ENV].append(arg_string)
+        placeholder_values[ENV].append(env_string)
