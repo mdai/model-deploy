@@ -84,7 +84,6 @@ def build_image(client, docker_image, relative_mdai_folder):
 
 def add_env_variables(placeholder_values, env_variables):
     ENV = "{{ENV}}"
-    print(placeholder_values)
     if env_variables is None:
         return
     for key in env_variables:
