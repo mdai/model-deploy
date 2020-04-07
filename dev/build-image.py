@@ -14,14 +14,14 @@ HELPER_DIR = os.path.join(BASE_DIRECTORY, "scripts")
 sys.path.insert(0, HELPER_DIR)
 
 hot_reload_values = {
-    "--COPY--": [
+    "{{COPY}}": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
         "RUN apt-get update",
         "RUN apt-get install -y inotify-tools",
     ],
-    "--COMMAND--": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
-    "--ENV--": [],
+    "{{COMMAND}}": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
+    "{{ENV}}": [],
 }
 
 
