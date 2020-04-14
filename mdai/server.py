@@ -11,6 +11,7 @@ from hypercorn.asyncio import serve
 
 from validation import OutputValidator
 
+SERVER_VERSION = "0.1"
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
 MDAI_PATH = os.path.join(LIB_PATH, os.environ["MDAI_PATH"])
@@ -147,6 +148,13 @@ def ready():
         return Response(status_code=200, content="")
     else:
         return Response(status_code=503, content="")
+
+
+@app.get("/version")
+def version():
+    """Route for retrieving server version.
+    """
+    return Response(status_code=200, content=SERVER_VERSION)
 
 
 if __name__ == "__main__":
