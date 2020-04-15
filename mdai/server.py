@@ -11,7 +11,10 @@ from hypercorn.asyncio import serve
 
 from validation import OutputValidator
 
-SERVER_VERSION = "0.1"
+# Used for model invalidation. If the minimum version required is increased beyond this value, then
+# the model built using this version will return an error. Version should be in semver format.
+MDAI_DEPLOY_API_VERSION = "0.1"
+
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
 MDAI_PATH = os.path.join(LIB_PATH, os.environ["MDAI_PATH"])
@@ -154,7 +157,7 @@ def ready():
 def version():
     """Route for retrieving server version.
     """
-    return Response(status_code=200, content=SERVER_VERSION)
+    return Response(status_code=200, content=MDAI_DEPLOY_API_VERSION)
 
 
 if __name__ == "__main__":
