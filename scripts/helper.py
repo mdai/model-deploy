@@ -1,6 +1,8 @@
 import os
 import yaml
 from shutil import rmtree
+import docker
+from shutil import copytree
 
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -39,22 +41,15 @@ def process_config_file(config_file):
     with open(config_file, "r") as stream:
         data = yaml.safe_load(stream)
         docker_env = data["base_image"]
-        target_folder = os.path.abspath(data["paths"]["model_folder"])
-        mdai_folder = os.path.abspath(data["paths"]["mdai_folder"])
         env = data.get("env")
 
         os.chdir(cwd)
-    return docker_env, target_folder, mdai_folder, env
+    return docker_env, env
 
 
 def get_paths(args):
     target_folder = os.path.abspath(args.target_folder)
-
-    if args.mdai_folder is None:  # If None, defaults to .mdai directory of target folder
-        mdai_folder = os.path.join(target_folder, ".mdai")
-    else:
-        mdai_folder = os.path.abspath(args.mdai_folder)
-
+    mdai_folder = os.path.join(target_folder, args.mdai_folder)
     config_path = os.path.join(mdai_folder, "config.yaml")
 
     return target_folder, mdai_folder, config_path
@@ -91,3 +86,48 @@ def add_env_variables(placeholder_values, env_variables):
         env_string = f"ENV {key}={env_variables[key]}"
         placeholder_values[ENV].append(arg_string)
         placeholder_values[ENV].append(env_string)
+
+
+def copy_files(target_folder, docker_env):
+    dest_dockerfile = process_dockerfile(docker_env, PLACEHOLDER_VALUES)
+
+    src_lib = target_folder
+    dest_lib = "./lib"
+    print(f"\nCopying target dir from {src_lib} to {dest_lib} ...")
+    copytree(src_lib, dest_lib)
+
+    copies = [dest_lib, dest_dockerfile]
+    return [os.path.abspath(file_copy) for file_copy in copies]
+
+
+def create_docker_image(args):
+    client = docker.from_env()
+    cwd = os.getcwd()
+
+    docker_env = args.docker_env
+    docker_image = args.image_name
+    env = None
+    config_file = None
+
+    target_folder, mdai_folder, config_path = get_paths(args)
+
+    # Detect config file if exists
+    if os.path.exists(config_path):
+        config_file = config_path
+
+    # Prioritize config file values if it exists
+    if config_file is not None:
+        docker_env, env = process_config_file(config_file)
+
+    add_env_variables(PLACEHOLDER_VALUES, env)
+    relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
+    os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
+    copies = copy_files(target_folder, docker_env)
+
+    try:
+        build_image(client, docker_image, relative_mdai_folder)
+    except docker.errors.APIError as e:
+        print("\nBuild Error: {}".format(e))
+    finally:
+        remove_files(copies)
+        os.chdir(cwd)

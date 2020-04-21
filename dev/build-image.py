@@ -27,16 +27,14 @@ hot_reload_values = {
 
 def parse_arguments():
     parser = ArgumentParser(description="Build docker image for model deployment")
+    parser.add_argument("--target_folder", type=str, help="path of model folder", required=True)
     parser.add_argument("--image_name", type=str, help="Name of docker output image", required=True)
     parser.add_argument("--docker_env", type=str, help="Docker environment to use", default="py37")
     parser.add_argument(
-        "--mdai_folder", type=str, help="path of mdai deployment folder", default=None
-    )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--target_folder", type=str, help="path of model folder", default=None)
-    group.add_argument("--config_file", type=str, help="path to yaml config file", default=None)
-    parser.add_argument(
         "--hot-reload", action="store_true", help="allows model files to be hot reloaded"
+    )
+    parser.add_argument(
+        "--mdai_folder", type=str, help="path of mdai deployment folder", default=".mdai"
     )
     args = parser.parse_args()
     return args
@@ -59,40 +57,8 @@ def copy_files(target_folder, docker_env, placeholder_values):
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
-if __name__ == "__main__":
-    import helper
-
-    client = docker.from_env()
-    cwd = os.getcwd()
-
-    args = parse_arguments()
-    hot_reload = args.hot_reload
-    config_file = args.config_file
-    docker_env = args.docker_env
-    docker_image = args.image_name
-    env = None
-
-    if config_file is None:
-        target_folder, mdai_folder, config_path = helper.get_paths(args)
-
-        # Detect config file if exists
-        if os.path.exists(config_path):
-            config_file = config_path
-
-    # Prioritize config file values if it exists
-    if config_file is not None:
-        docker_env, target_folder, mdai_folder, env = helper.process_config_file(config_file)
-
-    if hot_reload:
-        placeholder_values = hot_reload_values
-    else:
-        placeholder_values = helper.PLACEHOLDER_VALUES
-
-    helper.add_env_variables(placeholder_values, env)
-    relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
-    os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-    copies = copy_files(target_folder, docker_env, placeholder_values)
-
+def write_info_file(target_folder):
+    target_folder = os.path.abspath(target_folder)
     with open(INFO_FILE, "w") as f:
         info = {"model_path": target_folder}
         if hot_reload:
@@ -101,10 +67,45 @@ if __name__ == "__main__":
             info["dev"] = False
         f.write(json.dumps(info))
 
-    try:
-        helper.build_image(client, docker_image, relative_mdai_folder)
-    except docker.errors as e:
-        print("\nBuild Error: {}".format(e))
-    finally:
-        helper.remove_files(copies)
-        os.chdir(cwd)
+
+if __name__ == "__main__":
+    import helper
+
+    args = parse_arguments()
+    hot_reload = args.hot_reload
+    write_info_file(args.target_folder)
+
+    if hot_reload:
+        client = docker.from_env()
+        cwd = os.getcwd()
+
+        docker_env = args.docker_env
+        docker_image = args.image_name
+        env = None
+        config_file = None
+
+        target_folder, mdai_folder, config_path = helper.get_paths(args)
+        # Detect config file if exists
+        if os.path.exists(config_path):
+            config_file = config_path
+
+        # Prioritize config file values if it exists
+        if config_file is not None:
+            docker_env, env = helper.process_config_file(config_file)
+
+        placeholder_values = hot_reload_values
+
+        helper.add_env_variables(placeholder_values, env)
+        relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
+        os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
+        copies = copy_files(target_folder, docker_env, placeholder_values)
+
+        try:
+            helper.build_image(client, docker_image, relative_mdai_folder)
+        except docker.errors as e:
+            print("\nBuild Error: {}".format(e))
+        finally:
+            helper.remove_files(copies)
+            os.chdir(cwd)
+    else:
+        helper.create_docker_image(args)
