@@ -76,7 +76,6 @@ if __name__ == "__main__":
     write_info_file(args.target_folder)
 
     if hot_reload:
-
         client = docker.from_env()
         cwd = os.getcwd()
 

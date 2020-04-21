@@ -103,6 +103,7 @@ def copy_files(target_folder, docker_env):
 def create_docker_image(args):
     client = docker.from_env()
     cwd = os.getcwd()
+
     docker_env = args.docker_env
     docker_image = args.image_name
     env = None
