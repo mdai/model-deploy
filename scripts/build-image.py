@@ -7,14 +7,12 @@ import helper
 
 def parse_arguments():
     parser = ArgumentParser(description="Build docker image for model deployment")
+    parser.add_argument("--target_folder", type=str, help="path of model folder", required=True)
     parser.add_argument("--image_name", type=str, help="Name of docker output image", required=True)
     parser.add_argument("--docker_env", type=str, help="Docker environment to use", default="py37")
     parser.add_argument(
-        "--mdai_folder", type=str, help="path of mdai deployment folder", default=None
+        "--mdai_folder", type=str, help="path of mdai deployment folder", default=".mdai"
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--target_folder", type=str, help="path of model folder", default=None)
-    group.add_argument("--config_file", type=str, help="path to yaml config file", default=None)
     args = parser.parse_args()
     return args
 
