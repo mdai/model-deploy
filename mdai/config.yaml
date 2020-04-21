@@ -1,6 +1,3 @@
 base_image: <string> # path to Dockerfile of base image
-paths:
-    mdai_folder: <string> # path to mdai related files inside target folder
-    model_folder: <string> # path to root folder of model
 env: <string: value> # some key-val pairs which can be passed to the server at runtime
 
