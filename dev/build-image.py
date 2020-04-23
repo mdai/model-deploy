@@ -31,7 +31,7 @@ def parse_arguments():
     parser.add_argument("--image_name", type=str, help="Name of docker output image", required=True)
     parser.add_argument("--docker_env", type=str, help="Docker environment to use", default="py37")
     parser.add_argument(
-        "--hot-reload", action="store_true", help="allows model files to be hot reloaded"
+        "--hot_reload", action="store_true", help="allows model files to be hot reloaded"
     )
     parser.add_argument(
         "--mdai_folder", type=str, help="path of mdai deployment folder", default=".mdai"
