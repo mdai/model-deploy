@@ -17,9 +17,7 @@ PLACEHOLDER_VALUES = {
 
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
-    "tensorflow_1": "gcr.io/deeplearning-platform-release/tf-gpu.1-15",
-    "tensorflow_2": "gcr.io/deeplearning-platform-release/tf2-gpu.2-1",
-    "pytorch": "gcr.io/deeplearning-platform-release/pytorch-gpu.1-4",
+    "gpu": "gcr.io/deeplearning-platform-release/base-cu101",
 }
 
 
@@ -114,18 +112,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict):
     if device_type == "cpu":
         parent_image = image_dict.get("cpu")
     elif device_type == "gpu":
-        framework = config.get("framework")
-
-        if framework is None:
-            print("missing required arugument: framework", file=sys.stderr)
-            sys.exit()
-
-        framework = framework.lower()
-        parent_image = image_dict.get(framework)
-
-        if parent_image is None:
-            print("invalid value for arguemnt: framework", file=sys.stderr)
-            sys.exit()
+        parent_image = image_dict.get("gpu")
     else:
         print("invalid device type", file=sys.stderr)
         sys.exit()

@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
         placeholder_values = hot_reload_values
 
-        helper.resolve_parent_image(hot, config, helper.PARENT_IMAGE_DICT)
+        helper.resolve_parent_image(placeholder_values, config, helper.PARENT_IMAGE_DICT)
         helper.add_env_variables(placeholder_values, config.get("env"))
         relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
         os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
