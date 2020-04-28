@@ -3,14 +3,23 @@ import yaml
 from shutil import rmtree
 import docker
 from shutil import copytree
+import sys
 
 
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 PLACEHOLDER_VALUES = {
+    "{{PARENT_IMAGE}}": [],
     "{{COPY}}": ["COPY lib /src/lib/"],
-    "{{COMMAND}}": ['CMD ["python", "server.py"]'],
+    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; python server.py"]'],
     "{{ENV}}": [],
+}
+
+PARENT_IMAGE_DICT = {
+    "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
+    "tensorflow_1": "gcr.io/deeplearning-platform-release/tf-gpu.1-15",
+    "tensorflow_2": "gcr.io/deeplearning-platform-release/tf2-gpu.2-1",
+    "pytorch": "gcr.io/deeplearning-platform-release/pytorch-gpu.1-4",
 }
 
 
@@ -40,11 +49,9 @@ def process_config_file(config_file):
 
     with open(config_file, "r") as stream:
         data = yaml.safe_load(stream)
-        docker_env = data["base_image"]
-        env = data.get("env")
 
         os.chdir(cwd)
-    return docker_env, env
+    return data
 
 
 def get_paths(args):
@@ -100,6 +107,33 @@ def copy_files(target_folder, docker_env):
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
+def resolve_parent_image(placeholder_dict, config, image_dict):
+    framework = None
+    device_type = config.get("device_type", "cpu").lower()
+
+    if device_type == "cpu":
+        parent_image = image_dict.get("cpu")
+    elif device_type == "gpu":
+        framework = config.get("framework")
+
+        if framework is None:
+            print("missing required arugument: framework", file=sys.stderr)
+            sys.exit()
+
+        framework = framework.lower()
+        parent_image = image_dict.get(framework)
+
+        if parent_image is None:
+            print("invalid value for arguemnt: framework", file=sys.stderr)
+            sys.exit()
+    else:
+        print("invalid device type", file=sys.stderr)
+        sys.exit()
+
+    command = " ".join(["FROM", parent_image])
+    placeholder_dict["{{PARENT_IMAGE}}"].append(command)
+
+
 def create_docker_image(args):
     client = docker.from_env()
     cwd = os.getcwd()
@@ -117,12 +151,13 @@ def create_docker_image(args):
 
     # Prioritize config file values if it exists
     if config_file is not None:
-        docker_env, env = process_config_file(config_file)
+        config = process_config_file(config_file)
 
-    add_env_variables(PLACEHOLDER_VALUES, env)
+    resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT)
+    add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-    copies = copy_files(target_folder, docker_env)
+    copies = copy_files(target_folder, config["base_image"])
 
     try:
         build_image(client, docker_image, relative_mdai_folder)
