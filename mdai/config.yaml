@@ -1,3 +1,4 @@
-base_image: <string> # path to Dockerfile of base image
+base_image: <string> # base docker image. Currently only py37 is supported
+device_type: <string> # Can be one of two values (cpu/gpu) to indicate build type. Default is cpu
+framework: <string> # if device_type=gpu, deep learning framework needs to be specified. Supported values are tensorflow_1, tensorflow_2, pytorch
 env: <string: value> # some key-val pairs which can be passed to the server at runtime
-
