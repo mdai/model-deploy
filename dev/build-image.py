@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
         try:
             helper.build_image(client, docker_image, relative_mdai_folder)
-        except Exception as e:
+        except docker.errors as e:
             print("\nBuild Error: {}".format(e))
         finally:
             helper.remove_files(copies)
