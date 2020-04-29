@@ -14,13 +14,16 @@ HELPER_DIR = os.path.join(BASE_DIRECTORY, "scripts")
 sys.path.insert(0, HELPER_DIR)
 
 hot_reload_values = {
+    "{{PARENT_IMAGE}}": [],
     "{{COPY}}": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
         "RUN apt-get update",
         "RUN apt-get install -y inotify-tools",
     ],
-    "{{COMMAND}}": ['CMD ["sh", "-c", "./main.sh /src/lib /src/lib/$MDAI_PATH"]'],
+    "{{COMMAND}}": [
+        'CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib /src/lib/$MDAI_PATH"]'
+    ],
     "{{ENV}}": [],
 }
 
@@ -57,14 +60,23 @@ def copy_files(target_folder, docker_env, placeholder_values):
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
-def write_info_file(target_folder):
-    target_folder = os.path.abspath(target_folder)
+def write_info_file(args):
+    target_folder = os.path.abspath(args.target_folder)
     with open(INFO_FILE, "w") as f:
         info = {"model_path": target_folder}
         if hot_reload:
             info["dev"] = True
         else:
             info["dev"] = False
+
+        _, _, config_file = helper.get_paths(args)
+        config = helper.process_config_file(config_file)
+
+        if config.get("device_type") == "gpu":
+            info["device_type"] = "gpu"
+        else:
+            info["device_type"] = "cpu"
+
         f.write(json.dumps(info))
 
 
@@ -73,7 +85,7 @@ if __name__ == "__main__":
 
     args = parse_arguments()
     hot_reload = args.hot_reload
-    write_info_file(args.target_folder)
+    write_info_file(args)
 
     if hot_reload:
         client = docker.from_env()
@@ -91,14 +103,15 @@ if __name__ == "__main__":
 
         # Prioritize config file values if it exists
         if config_file is not None:
-            docker_env, env = helper.process_config_file(config_file)
+            config = helper.process_config_file(config_file)
 
         placeholder_values = hot_reload_values
 
-        helper.add_env_variables(placeholder_values, env)
+        helper.resolve_parent_image(placeholder_values, config, helper.PARENT_IMAGE_DICT)
+        helper.add_env_variables(placeholder_values, config.get("env"))
         relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
         os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-        copies = copy_files(target_folder, docker_env, placeholder_values)
+        copies = copy_files(target_folder, config["base_image"], placeholder_values)
 
         try:
             helper.build_image(client, docker_image, relative_mdai_folder)
