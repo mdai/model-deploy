@@ -17,12 +17,15 @@ DCM_EXTENSION = ".dcm"
 def get_files(root):
     """Yields all file paths recursively from root path, filtering on DICOM extension.
     """
-    for item in os.scandir(root):
-        if item.is_file():
-            if os.path.splitext(item.path)[1] == DCM_EXTENSION:
-                yield item.path
-        elif item.is_dir():
-            yield from get_files(item.path)
+    if os.path.isfile(root):
+        yield root
+    else:
+        for item in os.scandir(root):
+            if item.is_file():
+                if os.path.splitext(item.path)[1] == DCM_EXTENSION:
+                    yield item.path
+            elif item.is_dir():
+                yield from get_files(item.path)
 
 
 def process_file(path):
