@@ -18,12 +18,9 @@ hot_reload_values = {
     "{{COPY}}": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
-        "RUN apt-get update",
-        "RUN apt-get install -y inotify-tools",
+        'RUN /bin/bash -c "source activate mdai-env && pip install watchdog argh pyyaml"',
     ],
-    "{{COMMAND}}": [
-        'CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib /src/lib/$MDAI_PATH"]'
-    ],
+    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib"]'],
     "{{ENV}}": [],
 }
 
