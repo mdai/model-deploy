@@ -129,6 +129,7 @@ def create_docker_image(args):
     docker_image = args.image_name
     env = None
     config_file = None
+    config = {}
 
     target_folder, mdai_folder, config_path = get_paths(args)
 
