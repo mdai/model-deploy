@@ -1,2 +1,2 @@
 base_image: py37
-device_type: cpu
+device_type: gpu
