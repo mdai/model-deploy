@@ -56,7 +56,8 @@ def get_paths(args):
     target_folder = os.path.abspath(args.target_folder)
     mdai_folder = os.path.join(target_folder, args.mdai_folder)
     config_path = os.path.join(mdai_folder, "config.yaml")
-
+    if not os.path.exists(config_path):
+        config_path = os.path.join(mdai_folder, "config.yml")
     return target_folder, mdai_folder, config_path
 
 
