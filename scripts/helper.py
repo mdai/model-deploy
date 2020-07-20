@@ -58,6 +58,8 @@ def get_paths(args):
     config_path = os.path.join(mdai_folder, "config.yaml")
     if not os.path.exists(config_path):
         config_path = os.path.join(mdai_folder, "config.yml")
+    if not os.path.exists(config_path):
+        config_path = None
     return target_folder, mdai_folder, config_path
 
 
@@ -129,18 +131,14 @@ def create_docker_image(args):
     docker_env = args.docker_env
     docker_image = args.image_name
     env = None
-    config_file = None
     config = {}
 
     target_folder, mdai_folder, config_path = get_paths(args)
 
-    # Detect config file if exists
-    if os.path.exists(config_path):
-        config_file = config_path
 
     # Prioritize config file values if it exists
-    if config_file is not None:
-        config = process_config_file(config_file)
+    if config_path is not None:
+        config = process_config_file(config_path)
 
     resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT)
     add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
