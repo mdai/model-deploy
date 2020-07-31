@@ -11,6 +11,9 @@ from hypercorn.asyncio import serve
 
 from validation import OutputValidator
 
+# To handle compressed DICOM image data
+import pylibjpeg
+
 # Used for model invalidation. If the minimum version required is increased beyond this value, then
 # the model built using this version will return an error. Version should be in semver format.
 MDAI_DEPLOY_API_VERSION = "0.1"
