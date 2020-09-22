@@ -1,6 +1,6 @@
-keras-unet==0.0.7
-numpy==1.18.1
-opencv-python==4.2.0.32
-pydicom==1.4.2
-scikit-image==0.16.2
-tensorflow==2.2
+keras-unet==0.1.2
+numpy==1.19.2
+opencv-python==4.4.0.42
+pydicom==2.0.0
+scikit-image==0.17.2
+tensorflow==2.2.0

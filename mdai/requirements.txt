@@ -1,7 +1,7 @@
-fastapi==0.52.0
+fastapi==0.61.1
 msgpack==1.0.0
-hypercorn==0.9.2
-numpy==1.19.1
+hypercorn==0.10.2
+numpy==1.19.2
 pydicom==2.0.0
 pylibjpeg==1.1.1
 pylibjpeg-libjpeg==1.1.0
