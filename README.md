@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ### File Structure
 
-The file structure below needs to be followed. MD.ai related files are place in the `.mdai` folder and the model with its associated files are placed in the `model` folder. The overall root folder should be named `model`.
+The file structure below needs to be followed. MD.ai related files need to be placed in a folder named `.mdai` and the pretrained model along with its associated files need to be placed in a foler named `model`. These folders need to be stored in an overall root folder that should be named `model` as well.
 
 ```sh
 model/
