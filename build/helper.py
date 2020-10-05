@@ -18,6 +18,21 @@ PLACEHOLDER_VALUES = {
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
     "gpu": "gcr.io/deeplearning-platform-release/base-cu101",
+    "gcr.io/deeplearning-platform-release/tf-gpu": "tf-latest",
+    "gcr.io/deeplearning-platform-release/tf2-gpu": "tf2-latest",
+    "gcr.io/deeplearning-platform-release/tf-gpu.1-13": "tf-1.13",
+    "gcr.io/deeplearning-platform-release/tf-gpu.1-14": "tf-1.14",
+    "gcr.io/deeplearning-platform-release/tf-gpu.1-15": "tf-1.15",
+    "gcr.io/deeplearning-platform-release/tf2-gpu.2-0": "tf-2.0",
+    "gcr.io/deeplearning-platform-release/tf2-gpu.2-1": "tf-2.1",
+    "gcr.io/deeplearning-platform-release/tf2-gpu.2-2": "tf-2.2",
+    "gcr.io/deeplearning-platform-release/tf2-gpu.2-3": "tf-2.3",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu": "pytorch-latest",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu.1-0": "pytorch-1.0",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu.1-1": "pytorch-1.1",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu.1-2": "pytorch-1.2",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu.1-3": "pytorch-1.3",
+    "gcr.io/deeplearning-platform-release/pytorch-gpu.1-4": "pytorch-1.4"
 }
 
 
@@ -111,11 +126,24 @@ def copy_files(target_folder, docker_env):
 def resolve_parent_image(placeholder_dict, config, image_dict):
     framework = None
     device_type = config.get("device_type", "cpu").lower()
+    base_image = config.get("base_image")
 
     if device_type == "cpu":
-        parent_image = image_dict.get("cpu")
+        if base_image is None:
+            parent_image = image_dict.get("cpu")
+        elif base_image in image_dict:
+            print("cannot use a gpu image with device type cpu", file=sys.stderr)
+            sys.exit()
+        else:
+            parent_image = base_image
     elif device_type == "gpu":
-        parent_image = image_dict.get("gpu")
+        if base_image is None:
+            parent_image = image_dict.get("gpu")
+        elif base_image in image_dict:
+            parent_image = base_image
+        else:
+            print("invalid gpu image, please check documentation for available options", file=sys.stderr)
+            sys.exit()
     else:
         print("invalid device type", file=sys.stderr)
         sys.exit()
@@ -144,7 +172,7 @@ def create_docker_image(args):
     add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-    copies = copy_files(target_folder, config["base_image"])
+    copies = copy_files(target_folder, "py37")
 
     try:
         build_image(client, docker_image, relative_mdai_folder)
