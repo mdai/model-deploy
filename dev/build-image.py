@@ -10,7 +10,7 @@ import sys
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 INFO_FILE = "/tmp/mdai-model.info"
 
-HELPER_DIR = os.path.join(BASE_DIRECTORY, "scripts")
+HELPER_DIR = os.path.join(BASE_DIRECTORY, "build")
 sys.path.insert(0, HELPER_DIR)
 
 hot_reload_values = {
