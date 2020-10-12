@@ -59,9 +59,9 @@ class MDAIModel:
 
             output = {
                 "type": "ANNOTATION",
-                "study_uid": ds.StudyInstanceUID,
-                "series_uid": ds.SeriesInstanceUID,
-                "instance_uid": ds.SOPInstanceUID,
+                "study_uid": str(ds.StudyInstanceUID),
+                "series_uid": str(ds.SeriesInstanceUID),
+                "instance_uid": str(ds.SOPInstanceUID),
                 "class_index": int(class_index),
                 "probability": float(probability),
                 "explanations": [
