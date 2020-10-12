@@ -17,13 +17,13 @@ class MDAIModel:
     def predict(self, data):
         """
         See https://github.com/mdai/model-deploy/blob/master/mdai/server.py for details on the
-        schema of `data` and the required schema of the results returned by this function.
+        schema of `data` and the required schema of the outputs returned by this function.
         """
         input_files = data["files"]
         input_annotations = data["annotations"]
         input_args = data["args"]
 
-        results = []
+        outputs = []
 
         for file in input_files:
             if file['content_type'] != 'application/dicom':
@@ -57,7 +57,7 @@ class MDAIModel:
             smoothgrad_output_buffer = BytesIO()
             Image.fromarray(smoothgrad_output).save(smoothgrad_output_buffer, format="PNG")
 
-            result = {
+            output = {
                 "type": "ANNOTATION",
                 "study_uid": ds.StudyInstanceUID,
                 "series_uid": ds.SeriesInstanceUID,
@@ -79,6 +79,6 @@ class MDAIModel:
                     },
                 ],
             }
-            results.append(result)
+            outputs.append(output)
 
-        return results
+        return outputs

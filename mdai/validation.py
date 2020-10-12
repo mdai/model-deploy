@@ -39,54 +39,54 @@ class OutputValidator:
             "vertices": self.validate_data_with_vertices,
         }
 
-    def validate(self, results):
-        if type(results) != list:
-            raise InvalidFormatException("Expected list, got {}".format(type(results)))
-        for result in results:
-            self.validate_keys(result)
-            self.validate_types(result)
-            self.validate_data(result)
+    def validate(self, outputs):
+        if type(outputs) != list:
+            raise InvalidFormatException("Expected list, got {}".format(type(outputs)))
+        for output in outputs:
+            self.validate_keys(output)
+            self.validate_types(output)
+            self.validate_data(output)
 
-    def validate_keys(self, result):
-        if result.get("type") not in self.required_keys.keys():
-            raise InvalidFormatException("Invalid result type. Got {}".format(result.get("type")))
-        for key in self.required_keys[result["type"]]:
-            if key not in result:
+    def validate_keys(self, output):
+        if output.get("type") not in self.required_keys.keys():
+            raise InvalidFormatException("Invalid output type. Got {}".format(output.get("type")))
+        for key in self.required_keys[output["type"]]:
+            if key not in output:
                 raise InvalidFormatException("Key {} not found in model output".format(key))
 
-    def validate_types(self, result):
-        for key in result.keys():
+    def validate_types(self, output):
+        for key in output.keys():
             expected_types = (
                 self.types[key] if isinstance(self.types[key], list) else [self.types[key]]
             )
-            if type(result.get(key)) not in expected_types:
+            if type(output.get(key)) not in expected_types:
                 raise InvalidFormatException(
                     "Incorrect type for key {} in model output. Expected {}, got {}".format(
-                        key, self.types[key], result.get(key)
+                        key, self.types[key], output.get(key)
                     )
                 )
 
-    def validate_data(self, result):
-        if result.get("data") is None:
+    def validate_data(self, output):
+        if output.get("data") is None:
             return
         data_format = None
         for data_type in self.data_types.keys():
-            if set(result["data"].keys()) == set(self.data_types[data_type].keys()):
+            if set(output["data"].keys()) == set(self.data_types[data_type].keys()):
                 data_format = data_type
 
         if data_format is None:
             raise InvalidFormatException("data field does not conform to any known format")
 
-        for key in result["data"].keys():
-            if not isinstance(result["data"][key], self.data_types[data_format][key]):
+        for key in output["data"].keys():
+            if not isinstance(output["data"][key], self.data_types[data_format][key]):
                 raise InvalidFormatException(
                     "Invalid data type for {} expected {}".format(
-                        type(result["data"][key]), self.data_types[data_format][key]
+                        type(output["data"][key]), self.data_types[data_format][key]
                     )
                 )
 
         if self.data_validators[data_format] is not None:
-            self.data_validators[data_format](result["data"])
+            self.data_validators[data_format](output["data"])
 
     def validate_data_with_vertices(self, data):
         VERTEX_TYPE = [int, float]

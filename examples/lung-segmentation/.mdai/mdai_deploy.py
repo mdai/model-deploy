@@ -17,13 +17,13 @@ class MDAIModel:
     def predict(self, data):
         """
         See https://github.com/mdai/model-deploy/blob/master/mdai/server.py for details on the
-        schema of `data` and the required schema of the results returned by this function.
+        schema of `data` and the required schema of the outputs returned by this function.
         """
         input_files = data["files"]
         input_annotations = data["annotations"]
         input_args = data["args"]
 
-        results = []
+        outputs = []
 
         for file in input_files:
             if file["content_type"] != "application/dicom":
@@ -49,7 +49,7 @@ class MDAIModel:
             for contour in find_contours(mask, 0):
                 data = {"vertices": [[(v[1]), (v[0])] for v in contour.tolist()]}
 
-                result = {
+                output = {
                     "type": "ANNOTATION",
                     "study_uid": ds.StudyInstanceUID,
                     "series_uid": ds.SeriesInstanceUID,
@@ -57,6 +57,6 @@ class MDAIModel:
                     "class_index": 0,
                     "data": data,
                 }
-                results.append(result)
+                outputs.append(output)
 
-        return results
+        return outputs
