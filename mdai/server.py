@@ -16,7 +16,7 @@ import pylibjpeg
 
 # Used for model invalidation. If the minimum version required is increased beyond this value, then
 # the model built using this version will return an error. Version should be in semver format.
-MDAI_DEPLOY_API_VERSION = "0.1"
+MDAI_DEPLOY_API_VERSION = "0.2"
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -44,15 +44,21 @@ async def inference(request: Request):
     The POST body is msgpack-serialized binary data with the follow schema:
 
     {
-        "instances": [
+        "files": [
             {
-                "file": "bytes"
-                "tags": {
-                    "StudyInstanceUID": "str",
-                    "SeriesInstanceUID": "str",
-                    "SOPInstanceUID": "str",
-                    ...
-                }
+                "content": "bytes",
+                "content_type": "str", # MIME type, e.g. 'application/dicom'
+            },
+            ...
+        ],
+        "annotations": [
+            {
+                "study_uid": "str",
+                "series_uid": "str",
+                "instance_uid": "str",
+                "frame_number": "int",
+                "class_index": "int",
+                "data": "any",
             },
             ...
         ],
@@ -64,20 +70,24 @@ async def inference(request: Request):
     }
 
     Model scope specifies whether an entire study, series, or instance is given to the model.
-    If the model scope is 'INSTANCE', then `instances` will be a single instance (list length of 1).
-    If the model scope is 'SERIES', then `instances` will be a list of all instances in a series.
-    If the model scope is 'STUDY', then `instances` will be a list of all instances in a study.
+    - 'INSTANCE' model scope: `files` will contain a single instance (list length of 1)
+    - 'SERIES' model scope: `files` will contain a list of all instances in a series
+    - 'STUDY' model scope: `files` will contain a list of all instances in a study
+
+    If multi-frame instances are supported, the model scope must be 'SERIES' or 'STUDY', because
+    internally we treat these as DICOM series.
 
     The additional `args` dict supply values that may be used in a given run.
 
-    For a single instance dict, `files` is the raw binary data representing a DICOM file, and
-    can be loaded using: `ds = pydicom.dcmread(BytesIO(instance["file"]))`.
+    For a file with `content_type='application/dicom'`, `content` is the raw binary data
+    representing a DICOM file, and can be loaded using:
+    `ds = pydicom.dcmread(BytesIO(file["content"]))`.
 
     The response body should be the msgpack-serialized binary data of the results:
 
     [
         {
-            "type": "str", // 'NONE', 'ANNOTATION', 'IMAGE', 'DICOM', 'TEXT'
+            "type": "str", # 'NONE', 'ANNOTATION', 'IMAGE', 'DICOM', 'TEXT'
             "study_uid": "str",
             "series_uid": "str",
             "instance_uid": "str",
@@ -90,7 +100,7 @@ async def inference(request: Request):
                     "name": "str",
                     "description": "str",
                     "content": "bytes",
-                    "content_type": "str",
+                    "content_type": "str", # MIME type, e.g. 'image/png'
                 },
                 ...
             ],

@@ -16,73 +16,20 @@ class MDAIModel:
 
     def predict(self, data):
         """
-        The input data has the following schema:
-
-        {
-            "instances": [
-                {
-                    "file": "bytes"
-                    "tags": {
-                        "StudyInstanceUID": "str",
-                        "SeriesInstanceUID": "str",
-                        "SOPInstanceUID": "str",
-                        ...
-                    }
-                },
-                ...
-            ],
-            "args": {
-                "arg1": "str",
-                "arg2": "str",
-                ...
-            }
-        }
-
-        Model scope specifies whether an entire study, series, or instance is given to the model.
-        If the model scope is 'INSTANCE', then `instances` will be a single instance (list length of 1).
-        If the model scope is 'SERIES', then `instances` will be a list of all instances in a series.
-        If the model scope is 'STUDY', then `instances` will be a list of all instances in a study.
-
-        The additional `args` dict supply values that may be used in a given run.
-
-        For a single instance dict, `files` is the raw binary data representing a DICOM file, and
-        can be loaded using: `ds = pydicom.dcmread(BytesIO(instance["file"]))`.
-
-        The results returned by this function should have the following schema:
-
-        [
-            {
-                "type": "str", // 'NONE', 'ANNOTATION', 'IMAGE', 'DICOM', 'TEXT'
-                "study_uid": "str",
-                "series_uid": "str",
-                "instance_uid": "str",
-                "frame_number": "int",
-                "class_index": "int",
-                "data": {},
-                "probability": "float",
-                "explanations": [
-                    {
-                        "name": "str",
-                        "description": "str",
-                        "content": "bytes",
-                        "content_type": "str",
-                    },
-                    ...
-                ],
-            },
-            ...
-        ]
-
-        The DICOM UIDs must be supplied based on the scope of the label attached to `class_index`.
+        See https://github.com/mdai/model-deploy/blob/master/mdai/server.py for details on the
+        schema of `data` and the required schema of the results returned by this function.
         """
-        input_instances = data["instances"]
+        input_files = data["files"]
+        input_annotations = data["annotations"]
         input_args = data["args"]
 
         results = []
 
-        for instance in input_instances:
-            tags = instance["tags"]
-            ds = pydicom.dcmread(BytesIO(instance["file"]))
+        for file in input_files:
+            if file['content_type'] != 'application/dicom':
+                continue
+
+            ds = pydicom.dcmread(BytesIO(file["content"]))
             image = ds.pixel_array
             x = preprocess_image(image)
 
@@ -112,9 +59,9 @@ class MDAIModel:
 
             result = {
                 "type": "ANNOTATION",
-                "study_uid": tags["StudyInstanceUID"],
-                "series_uid": tags["SeriesInstanceUID"],
-                "instance_uid": tags["SOPInstanceUID"],
+                "study_uid": ds.StudyInstanceUID,
+                "series_uid": ds.SeriesInstanceUID,
+                "instance_uid": ds.SOPInstanceUID,
                 "class_index": int(class_index),
                 "probability": float(probability),
                 "explanations": [

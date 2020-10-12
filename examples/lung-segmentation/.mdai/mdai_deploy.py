@@ -15,14 +15,21 @@ class MDAIModel:
         self.model = tf.keras.models.load_model(modelpath, custom_objects={"iou": iou})
 
     def predict(self, data):
-        input_instances = data["instances"]
+        """
+        See https://github.com/mdai/model-deploy/blob/master/mdai/server.py for details on the
+        schema of `data` and the required schema of the results returned by this function.
+        """
+        input_files = data["files"]
+        input_annotations = data["annotations"]
         input_args = data["args"]
 
         results = []
 
-        for instance in input_instances:
-            tags = instance["tags"]
-            ds = pydicom.dcmread(BytesIO(instance["file"]))
+        for file in input_files:
+            if file["content_type"] != "application/dicom":
+                continue
+
+            ds = pydicom.dcmread(BytesIO(file["content"]))
             image = ds.pixel_array
             original_dims = image.shape
 
@@ -44,9 +51,9 @@ class MDAIModel:
 
                 result = {
                     "type": "ANNOTATION",
-                    "study_uid": tags["StudyInstanceUID"],
-                    "series_uid": tags["SeriesInstanceUID"],
-                    "instance_uid": tags["SOPInstanceUID"],
+                    "study_uid": ds.StudyInstanceUID,
+                    "series_uid": ds.SeriesInstanceUID,
+                    "instance_uid": ds.SOPInstanceUID,
                     "class_index": 0,
                     "data": data,
                 }

@@ -29,29 +29,23 @@ def get_files(root):
 
 
 def process_file(path):
+    file = {}
     with open(path, "rb") as f:
-        instance = {}
         file_content = f.read()
-        dicom_content = pydicom.read_file(BytesIO(file_content))
-
-        tags = {}
-        tags["StudyInstanceUID"] = dicom_content.StudyInstanceUID
-        tags["SeriesInstanceUID"] = dicom_content.SeriesInstanceUID
-        tags["SOPInstanceUID"] = dicom_content.SOPInstanceUID
-        instance["tags"] = tags
-        instance["file"] = file_content
-
-        return instance
+        file["content"] = file_content
+        file["content_type"] = "application/dicom"
+    return file
 
 
 def process_data(path):
     file_paths = list(get_files(path))
-    result = {}
-    result["instances"] = []
-    result["args"] = {}
+    data = {}
+    data["files"] = []
+    data["annotations"] = []
+    data["args"] = {}
     for path in file_paths:
-        result["instances"].append(process_file(path))
-    return msgpack.packb(result)
+        data["files"].append(process_file(path))
+    return msgpack.packb(data)
 
 
 def make_inference(path):
@@ -84,9 +78,9 @@ def output_json(data):
         indent = None
 
         if not output_raw:
-            for instance in data:
-                instance.pop("data", None)
-                instance.pop("explanations", None)
+            for output in data:
+                output.pop("data", None)
+                output.pop("explanations", None)
 
         if output_pretty:
             indent = INDENT_SPACES
