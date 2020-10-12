@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ### File Structure
 
-The file structure below needs to be followed. MD.ai related files need to be placed in a folder named `.mdai` and the pretrained model along with its associated files need to be placed in a foler named `model`. These folders need to be stored in an overall root folder that should be named `model` as well.
+The file structure below needs to be followed. Create a root folder named `model`. Inside this folder, store your pretrained model file. Along with this, create a sub folder named `.mdai` and all the MD.ai interface related build files need to be placed inside this folder.
 
 ```sh
 model/
@@ -29,7 +29,7 @@ model/
       |__ config.yml            # Contains configuration parameters to be used during bulid
       |__ mdai_deploy.py        # Framework which communicates between server and model
       |__ requirements.txt      # Lists the libraries needed to run the model
-  |__ model/
+  |__ model_file.pth            # Pretrained model checkpoint file
 ```
 
 The uploaded model assets file should be a compressed file: accepted formats are `.zip` and `.tar.gz`. To compress the model folder, use the following command:
