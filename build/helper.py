@@ -17,7 +17,11 @@ PLACEHOLDER_VALUES = {
 
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
-    "gpu": "gcr.io/deeplearning-platform-release/base-cu110",
+    "gpu": {
+        "11.0": "gcr.io/deeplearning-platform-release/base-cu110",
+        "10.1": "gcr.io/deeplearning-platform-release/base-cu101",
+        "10.0": "gcr.io/deeplearning-platform-release/base-cu100"
+    }
 }
 
 
@@ -111,11 +115,16 @@ def copy_files(target_folder, docker_env):
 def resolve_parent_image(placeholder_dict, config, image_dict):
     framework = None
     device_type = config.get("device_type", "cpu").lower()
+    cuda_version = config.get("cuda_version", "11.0")
 
     if device_type == "cpu":
         parent_image = image_dict.get("cpu")
     elif device_type == "gpu":
-        parent_image = image_dict.get("gpu")
+        if cuda_version in image_dict.get("gpu"):
+            parent_image = image_dict["gpu"].get(cuda_version)
+        else:
+            print(f"CUDA {cuda_version} is not supported. Please check docs for the correct versions.", file=sys.stderr)
+            sys.exit()
     else:
         print("invalid device type", file=sys.stderr)
         sys.exit()
