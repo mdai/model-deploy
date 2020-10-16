@@ -115,7 +115,7 @@ def copy_files(target_folder, docker_env):
 def resolve_parent_image(placeholder_dict, config, image_dict):
     framework = None
     device_type = config.get("device_type", "cpu").lower()
-    cuda_version = config.get("cuda_version", "11.0")
+    cuda_version = str(config.get("cuda_version", "11.0"))
 
     if device_type == "cpu":
         parent_image = image_dict.get("cpu")
