@@ -1,10 +1,19 @@
 # model-deploy
 
+## Documentation
+
+- [MD.ai Interface Code](https://docs.md.ai/models/interface-code/)
+- [Deploying Models](https://docs.md.ai/models/deploy-models/)
+- [Inference](https://docs.md.ai/models/inference/)
+- ...more to come, including training and testing
+
 ## Examples
 
 Example model deployments for training/testing/inference on MD.ai are located in the `examples/` folder.
 
-## Setup
+## Development [MD.ai Internal Only]
+
+### Setup
 
 Python 3.7+ required. Initial setup:
 
@@ -16,8 +25,6 @@ source .venv/bin/activate
 # Install deps
 pip install -r requirements.txt
 ```
-
-## Development
 
 ### File Structure
 
