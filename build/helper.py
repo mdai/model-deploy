@@ -20,8 +20,8 @@ PARENT_IMAGE_DICT = {
     "gpu": {
         "11.0": "gcr.io/deeplearning-platform-release/base-cu110",
         "10.1": "gcr.io/deeplearning-platform-release/base-cu101",
-        "10.0": "gcr.io/deeplearning-platform-release/base-cu100"
-    }
+        "10.0": "gcr.io/deeplearning-platform-release/base-cu100",
+    },
 }
 
 
@@ -123,7 +123,10 @@ def resolve_parent_image(placeholder_dict, config, image_dict):
         if cuda_version in image_dict.get("gpu"):
             parent_image = image_dict["gpu"].get(cuda_version)
         else:
-            print(f"CUDA {cuda_version} is not supported. Please check docs for the correct versions.", file=sys.stderr)
+            print(
+                f"CUDA {cuda_version} is not supported. Please check docs for the correct versions.",
+                file=sys.stderr,
+            )
             sys.exit()
     else:
         print("invalid device type", file=sys.stderr)
@@ -139,18 +142,20 @@ def create_docker_image(args):
 
     docker_env = args.docker_env
     docker_image = args.image_name
-    env = None
     config = {}
 
     target_folder, mdai_folder, config_path = get_paths(args)
-
 
     # Prioritize config file values if it exists
     if config_path is not None:
         config = process_config_file(config_path)
 
+    batch_size = int(config.get("batch_size", "1"))
+    file_type = config.get("file_type", "dicom").lower()
+    env = {"batch_size": batch_size, "file_type": file_type}
+
     resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT)
-    add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
+    add_env_variables(PLACEHOLDER_VALUES, env)
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
     copies = copy_files(target_folder, config["base_image"])
