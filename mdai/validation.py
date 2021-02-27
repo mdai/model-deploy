@@ -29,6 +29,7 @@ class OutputValidator:
             "point": {"x": int, "y": int},
             "box": {"x": int, "y": int, "width": int, "height": int},
             "vertices": {"vertices": list},
+            "mask": {"mask": list},
         }
 
         # Dict for mapping function to specific data types. Used for additional checks
@@ -37,6 +38,7 @@ class OutputValidator:
             "point": None,
             "box": None,
             "vertices": self.validate_data_with_vertices,
+            "mask": None,
         }
 
     def validate(self, outputs):
