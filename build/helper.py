@@ -142,6 +142,7 @@ def create_docker_image(args):
 
     docker_env = args.docker_env
     docker_image = args.image_name
+    env = None
     config = {}
 
     target_folder, mdai_folder, config_path = get_paths(args)
@@ -150,12 +151,8 @@ def create_docker_image(args):
     if config_path is not None:
         config = process_config_file(config_path)
 
-    batch_size = int(config.get("batch_size", "1"))
-    file_type = config.get("file_type", "dicom").lower()
-    env = {"batch_size": batch_size, "file_type": file_type}
-
     resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT)
-    add_env_variables(PLACEHOLDER_VALUES, env)
+    add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
     copies = copy_files(target_folder, config["base_image"])
