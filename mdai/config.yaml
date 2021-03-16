@@ -1,6 +1,4 @@
 base_image: <string> # base docker image. Currently only py37 is supported
 device_type: <string> # Can be one of two values (cpu/gpu) to indicate build type. Default is cpu
 cuda_version: <string> # cuda version to use for gpu tasks. Can be one of (11.0, 10.1 or 10.0). Default is 11.0
-batch_size: <string> # batch size value for efficient gpu utilization. Default is 1.
-file_type: <string> # can be one of two values (dicom/thumbnail) to indicate input image type. Default is dicom.
 env: <string: value> # some key-val pairs which can be passed to the server at runtime
