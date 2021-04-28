@@ -149,17 +149,89 @@ async def inference(request: Request):
     return resp
 
 
+@app.post("/testing_on_batch")
+async def testing_on_batch(request: Request):
+    """
+    Route for model metrics evaluation.
+    The POST body is msgpack-serialized binary data with the follow schema:
+
+    {
+        "files": [
+            {
+                "content": "bytes",
+                "content_type": "str", # MIME type, e.g. 'application/dicom'
+            },
+            ...
+        ],
+        "targets": [
+            {
+                "resource_scope": "str", # 'STUDY', 'SERIES', or 'INSTANCE'
+                "resource_uid": "str",
+                "target_type": "str", # 'NONE' or 'ANNOTATION'
+                "target_class_index": "int",
+                "target_annotation_mode": "str",
+                "target_data": "any",
+            },
+            ...
+        ],
+        "args": {
+            "arg1": "str",
+            "arg2": "str",
+            ...
+        }
+    }
+
+    The response body should be the msgpack-serialized binary data of the results:
+
+    [
+        {
+            "name": "str", # For example, 'Mean Squared Error'
+            "value": "float",
+            "reduction": "str", # 'mean' or 'sum'
+        },
+        ...
+    ]
+    """
+
+    loop = asyncio.get_event_loop()
+
+    if not request.headers["content-type"] == "application/msgpack":
+        raise HTTPException(status_code=400)
+    body = await request.body()
+
+    def _testing_on_batch(body):
+        data = msgpack.unpackb(body, raw=False)
+
+        try:
+            mdai_model_lock.acquire()
+            results = mdai_model.evaluate_on_batch(data)
+        except Exception as e:
+            logger.exception(e)
+            text = f"Error calculating metrics: {str(e)}"
+            headers = {"Content-Type": "text/plain"}
+            return Response(content=text, status_code=500, headers=headers)
+        finally:
+            mdai_model_lock.release()
+
+        headers = {"Content-Type": "application/msgpack"}
+        resp = Response(
+            status_code=200, content=msgpack.packb(results, use_bin_type=True), headers=headers
+        )
+        return resp
+
+    resp = await loop.run_in_executor(executor, _testing_on_batch, body)
+    return resp
+
+
 @app.get("/healthz")
 def healthz():
-    """Route for Kubernetes liveness check.
-    """
+    """Route for Kubernetes liveness check."""
     return Response(status_code=200, content="")
 
 
 @app.get("/ready")
 def ready():
-    """Route for Kubernetes readiness check.
-    """
+    """Route for Kubernetes readiness check."""
     if mdai_model_ready:
         return Response(status_code=200, content="")
     else:
@@ -168,9 +240,17 @@ def ready():
 
 @app.get("/version")
 def version():
-    """Route for retrieving server version.
-    """
+    """Route for retrieving server version."""
     return Response(status_code=200, content=MDAI_DEPLOY_API_VERSION)
+
+
+@app.get("/has_testing_metrics")
+def has_testing_metrics():
+    """Route for metric evaluation check."""
+    data = {"hasTestingMetrics": False}
+    if hasattr(mdai_model, "evaluate_on_batch") and callable(mdai_model.evaluate_on_batch):
+        data["hasTestingMetrics"] = True
+    return Response(status_code=200, content=data)
 
 
 if __name__ == "__main__":
