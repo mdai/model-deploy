@@ -82,3 +82,34 @@ class MDAIModel:
             outputs.append(output)
 
         return outputs
+
+    def evaluate_on_batch(self, data):
+        input_files = data["files"]
+        input_targets = data["targets"]
+
+        outputs = []
+
+        for i, file in enumerate(input_files):
+            if file["content_type"] != "application/dicom":
+                continue
+
+            ds = pydicom.dcmread(BytesIO(file["content"]))
+            image = ds.pixel_array
+            x = preprocess_image(image)
+
+            y_prob = self.model.predict(x)
+            y_classes = y_prob.argmax(axis=-1)
+
+            class_index = y_classes[0]
+            probability = y_prob[0][class_index]
+
+            target = input_targets[i]
+            if target["target_type"] != "NONE":
+                outputs.append(
+                    {
+                        "name": "Mean Square Error",
+                        "value": (int(class_index) - int(target["target_class_index"])) ** 2,
+                        "reduction": "mean",
+                    }
+                )
+        return outputs
