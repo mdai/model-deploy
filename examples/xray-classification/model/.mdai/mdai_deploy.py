@@ -26,7 +26,7 @@ class MDAIModel:
         outputs = []
 
         for file in input_files:
-            if file['content_type'] != 'application/dicom':
+            if file["content_type"] != "application/dicom":
                 continue
 
             ds = pydicom.dcmread(BytesIO(file["content"]))
