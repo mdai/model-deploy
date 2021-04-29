@@ -87,7 +87,13 @@ class MDAIModel:
         input_files = data["files"]
         input_targets = data["targets"]
 
-        outputs = []
+        outputs = [
+            {
+                "name": "Mean Square Error",
+                "values": [],
+                "reduction": "mean",
+            }
+        ]
 
         for i, file in enumerate(input_files):
             if file["content_type"] != "application/dicom":
@@ -105,11 +111,7 @@ class MDAIModel:
 
             target = input_targets[i]
             if target["target_type"] != "NONE":
-                outputs.append(
-                    {
-                        "name": "Mean Square Error",
-                        "value": (int(class_index) - int(target["target_class_index"])) ** 2,
-                        "reduction": "mean",
-                    }
+                outputs[0]["values"].append(
+                    (int(class_index) - int(target["target_class_index"])) ** 2
                 )
         return outputs
