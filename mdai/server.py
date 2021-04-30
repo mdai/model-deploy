@@ -310,11 +310,13 @@ def version():
 @app.get("/has-testing-metrics")
 def has_testing_metrics():
     """Route for metric evaluation check."""
+    headers = {"Content-Type": "application/msgpack"}
+    data = {"hasTestingMetrics": False}
     if hasattr(mdai_model, "evaluate_on_batch") and callable(mdai_model.evaluate_on_batch):
-        data = "{'hasTestingMetrics': True}"
-    else:
-        data = "{'hasTestingMetrics': False}"
-    return Response(status_code=200, content=data, media_type="application/json")
+        data["hasTestingMetrics"] = True
+    return Response(
+        status_code=200, content=msgpack.packb(data, use_bin_type=True), headers=headers
+    )
 
 
 if __name__ == "__main__":
