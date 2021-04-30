@@ -186,7 +186,7 @@ async def testing_on_batch(request: Request):
     [
         {
             "name": "str", # For example, 'Mean Squared Error'
-            "value": "float",
+            "values": "float[]",
             "reduction": "str", # 'mean' or 'sum'
         },
         ...
