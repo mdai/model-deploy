@@ -109,7 +109,12 @@ class MDAIModel:
             class_index = y_classes[0]
             probability = y_prob[0][class_index]
 
-            target = input_targets[i]
+            target = next(
+                item
+                for item in input_targets
+                if item["resource_scope"] == "INSTANCE"
+                and item["resource_uid"] == ds.SOPInstanceUID
+            )
             if target["target_type"] != "NONE":
                 outputs[0]["values"].append(
                     (int(class_index) - int(target["target_class_index"])) ** 2
