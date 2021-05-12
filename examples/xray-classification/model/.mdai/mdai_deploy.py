@@ -89,7 +89,7 @@ class MDAIModel:
 
         outputs = [
             {
-                "name": "Mean Square Error",
+                "name": "Accuracy",
                 "values": [],
                 "reduction": "mean",
             }
@@ -117,6 +117,6 @@ class MDAIModel:
             )
             if target["target_type"] != "NONE":
                 outputs[0]["values"].append(
-                    (int(class_index) - int(target["target_class_index"])) ** 2
+                    1 if int(class_index) == int(target["target_class_index"]) else 0
                 )
         return outputs
