@@ -3,6 +3,7 @@ msgpack==1.0.0
 hypercorn==0.10.2
 numpy==1.19.2
 pydicom==2.0.0
-pylibjpeg==1.1.1
-pylibjpeg-libjpeg==1.1.0
-pylibjpeg-openjpeg==1.0.1
+pylibjpeg==1.3.0
+pylibjpeg-libjpeg==1.2.0
+pylibjpeg-openjpeg==1.1.1
+pylibjpeg-rle==1.1.0
