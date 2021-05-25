@@ -6,3 +6,6 @@ pydicom
 pytest
 requests
 pyyaml
+
+# Temporary installation until docker-py issue is fixed
+six
