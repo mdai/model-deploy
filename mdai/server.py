@@ -183,14 +183,23 @@ async def testing_on_batch(request: Request):
 
     The response body should be the msgpack-serialized binary data of the results:
 
-    [
-        {
-            "name": "str", # For example, 'Mean Squared Error'
-            "values": "float[]",
-            "reduction": "str", # 'mean' or 'sum'
-        },
-        ...
-    ]
+    {
+        metrics: [
+            {
+                "name": "str", # For example, 'Mean Square Error'
+                "values": "float[]",
+                "reduction": "str", # 'mean' or 'sum'
+            },
+            ...
+        ],
+        errors: [
+            {
+                "resource_uid": "str", # uid for 'STUDY', 'SERIES', or 'INSTANCE',
+                "error_message": "str", # For example, 'Missing annotation for the resource'
+            },
+            ...
+        ]
+    }
     """
 
     loop = asyncio.get_event_loop()
