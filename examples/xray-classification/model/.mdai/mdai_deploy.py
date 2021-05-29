@@ -87,13 +87,16 @@ class MDAIModel:
         input_files = data["files"]
         input_targets = data["targets"]
 
-        outputs = [
-            {
-                "name": "Accuracy",
-                "values": [],
-                "reduction": "mean",
-            }
-        ]
+        outputs = {
+            "metrics": [
+                {
+                    "name": "Accuracy",
+                    "values": [],
+                    "reduction": "mean",
+                }
+            ],
+            "errors": [],
+        }
 
         for i, file in enumerate(input_files):
             if file["content_type"] != "application/dicom":
@@ -115,8 +118,16 @@ class MDAIModel:
                 if item["resource_scope"] == "INSTANCE"
                 and item["resource_uid"] == ds.SOPInstanceUID
             )
+
             if target["target_type"] != "NONE":
-                outputs[0]["values"].append(
+                outputs["metrics"][0]["values"].append(
                     1 if int(class_index) == int(target["target_class_index"]) else 0
+                )
+            else:
+                outputs["errors"].append(
+                    {
+                        "resource_uid": str(ds.SOPInstanceUID),
+                        "error_message": "Missing annotation for resource",
+                    }
                 )
         return outputs
