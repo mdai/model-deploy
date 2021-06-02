@@ -4,7 +4,6 @@ import cv2
 import pydicom
 import tensorflow as tf
 from keras_unet.metrics import iou
-from skimage.measure import find_contours
 import numpy as np
 from preprocess import preprocess_image
 
@@ -45,18 +44,13 @@ class MDAIModel:
             mask = mask[row_start:row_end, col_start:col_end]
             mask = cv2.resize(mask, (original_dims[1], original_dims[0])).astype(np.uint8)
 
-            # Each contour should create a new annotation model output
-            for contour in find_contours(mask, 0):
-                data = {"vertices": [[(v[1]), (v[0])] for v in contour.tolist()]}
-
-                output = {
-                    "type": "ANNOTATION",
-                    "study_uid": str(ds.StudyInstanceUID),
-                    "series_uid": str(ds.SeriesInstanceUID),
-                    "instance_uid": str(ds.SOPInstanceUID),
-                    "class_index": 0,
-                    "data": data,
-                }
-                outputs.append(output)
-
+            output = {
+                "type": "ANNOTATION",
+                "study_uid": str(ds.StudyInstanceUID),
+                "series_uid": str(ds.SeriesInstanceUID),
+                "instance_uid": str(ds.SOPInstanceUID),
+                "class_index": 0,
+                "data": {"mask": mask.tolist()},
+            }
+            outputs.append(output)
         return outputs
