@@ -11,7 +11,8 @@ BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 PLACEHOLDER_VALUES = {
     "{{PARENT_IMAGE}}": [],
     "{{COPY}}": ["COPY lib /src/lib/"],
-    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; python server.py"]'],
+    "{{COMMAND_MDAI}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; python server.py"]'],
+    "{{COMMAND_NVIDIA}}": ['CMD ["/bin/bash", "-c", "python server.py"]'],
     "{{ENV}}": [],
 }
 
@@ -21,6 +22,13 @@ PARENT_IMAGE_DICT = {
         "11.0": "gcr.io/deeplearning-platform-release/base-cu110",
         "10.1": "gcr.io/deeplearning-platform-release/base-cu101",
         "10.0": "gcr.io/deeplearning-platform-release/base-cu100",
+    },
+    "nvidia": {
+        "4.0": "nvcr.io/nvidia/clara-train-sdk:v4.0",
+        "3.1.01": "nvcr.io/nvidia/clara-train-sdk:v3.1.01",
+        "3.1": "nvcr.io/nvidia/clara-train-sdk:v3.1",
+        "3.0": "nvcr.io/nvidia/clara-train-sdk:v3.0",
+        "2.0": "nvcr.io/nvidia/clara-train-sdk:v2.0",
     },
 }
 
@@ -35,7 +43,7 @@ def replace_lines(infile, outfile, replace_dict):
 
 
 def process_dockerfile(docker_env, placeholder_values):
-    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile.template")
+    src_dockerfile = os.path.join(BASE_DIRECTORY, "docker", docker_env, "Dockerfile")
     dest_dockerfile = "./Dockerfile"
     print(f"\nCopying Dockerfile from {src_dockerfile} to {dest_dockerfile} ...")
     with open(src_dockerfile, "r") as infile, open(dest_dockerfile, "w") as outfile:
@@ -114,23 +122,24 @@ def copy_files(target_folder, docker_env):
 
 def resolve_parent_image(placeholder_dict, config, image_dict):
     framework = None
+    base_image = config.get("base_image", "py37").lower()
     device_type = config.get("device_type", "cpu").lower()
     cuda_version = str(config.get("cuda_version", "11.0"))
+    clara_version = config.get("clara_version", "4.0")
 
-    if device_type == "cpu":
-        parent_image = image_dict.get("cpu")
-    elif device_type == "gpu":
-        if cuda_version in image_dict.get("gpu"):
+    if base_image in ["nvidia"]:
+        parent_image = image_dict["nvidia"].get(str(clara_version))
+    else:
+        if device_type == "cpu":
+            parent_image = image_dict.get("cpu")
+        elif device_type == "gpu" and cuda_version in image_dict.get("gpu"):
             parent_image = image_dict["gpu"].get(cuda_version)
         else:
             print(
-                f"CUDA {cuda_version} is not supported. Please check docs for the correct versions.",
+                "Device type/cuda version not supported. Please check documentation for the correct versions.",
                 file=sys.stderr,
             )
             sys.exit()
-    else:
-        print("invalid device type", file=sys.stderr)
-        sys.exit()
 
     command = " ".join(["FROM", parent_image])
     placeholder_dict["{{PARENT_IMAGE}}"].append(command)

@@ -18,9 +18,11 @@ hot_reload_values = {
     "{{COPY}}": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
-        'RUN /bin/bash -c "source activate mdai-env && pip install watchdog argh pyyaml"',
     ],
-    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib"]'],
+    "{{COMMAND_MDAI}}": [
+        'CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib"]'
+    ],
+    "{{COMMAND_NVIDIA}}": ['CMD ["/bin/bash", "-c", "./main.sh /src/lib"]'],
     "{{ENV}}": [],
 }
 
@@ -101,6 +103,15 @@ if __name__ == "__main__":
         # Prioritize config file values if it exists
         if config_file is not None:
             config = helper.process_config_file(config_file)
+
+        if config.get("base_image").lower() in ["nvidia"]:
+            hot_reload_values["{{COPY}}"].append(
+                'RUN /bin/bash -c "pip install watchdog argh pyyaml"',
+            )
+        else:
+            hot_reload_values["{{COPY}}"].append(
+                'RUN /bin/bash -c "source activate mdai-env && pip install watchdog argh pyyaml"',
+            )
 
         placeholder_values = hot_reload_values
 

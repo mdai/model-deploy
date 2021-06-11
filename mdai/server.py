@@ -6,8 +6,7 @@ import msgpack
 from fastapi import FastAPI, HTTPException, Request, Response
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
-from hypercorn.config import Config
-from hypercorn.asyncio import serve
+from uvicorn import Config, Server
 
 from validation import OutputValidator
 
@@ -335,8 +334,9 @@ if __name__ == "__main__":
     mdai_model = MDAIModel()
     mdai_model_ready = True
 
-    config = Config()
-    config.bind = ["0.0.0.0:6324"]
-    config.workers = 1
+    loop = asyncio.new_event_loop()
 
-    asyncio.run(serve(app, config))
+    config = Config(app=app, host="0.0.0.0", port="6324", workers=1)
+    server = Server(config)
+
+    loop.run_until_complete(server.serve())
