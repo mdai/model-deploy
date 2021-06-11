@@ -1,0 +1,334 @@
+{
+  "epochs": 10,
+  "multi_gpu": false,
+  "learning_rate": 2e-4,
+  "use_amp": false,
+  "train": {
+    "model": {
+      "name": "DenseNet121",
+      "args": {
+        "weight_decay": 1e-5,
+        "data_format": "channels_last",
+        "pretrain_weight_name": "{PRETRAIN_WEIGHTS_FILE}"
+      }
+    },
+    "loss": {
+      "name": "BinaryClassificationLoss"
+    },
+    "optimizer": {
+      "name": "Adam"
+    },
+    "pre_transforms": [
+      {
+        "name": "LoadPng",
+        "args": {
+          "fields": [
+            "image"
+          ]
+        }
+      },
+      {
+        "name": "CropRandomSizeWithDisplacement",
+        "args": {
+          "lower_size": [
+            0.9,
+            0.9
+          ],
+          "fields": "image",
+          "max_displacement": 200
+        }
+      },
+      {
+        "name": "ScaleToShape",
+        "args": {
+          "fields": [
+            "image"
+          ],
+          "target_shape": [
+            256,
+            256
+          ]
+        }
+      },
+      {
+        "name": "RandomRotate2D",
+        "args": {
+          "fields": [
+            "image"
+          ],
+          "angle": 7,
+          "is_random": true
+        }
+      },
+      {
+        "name": "ConvertToChannelsLast",
+        "args": {
+          "fields": "image"
+        }
+      },
+      {
+        "name": "RepeatChannel",
+        "args": {
+          "fields": "image",
+          "repeat_times": 3
+        }
+      },
+      {
+        "name": "CenterData",
+        "args": {
+          "fields": "image"
+        }
+      }
+    ],
+    "aux_ops": [
+      {
+        "name": "ComputeAccuracy",
+        "args": {
+          "tag": "accuracy",
+          "use_sigmoid": true
+        }
+      },
+      {
+        "name": "ComputeBinaryPreds",
+        "args": {
+          "binary_preds_name": "binary_preds",
+          "binary_labels_name": "binary_labels"
+        }
+      }
+    ],
+    "image_pipeline": {
+      "name": "ClassificationImagePipeline",
+      "args": {
+        "data_list_file_path": "{DATASET_JSON}",
+        "data_file_base_dir": "{DATA_ROOT}",
+        "data_list_key": "training",
+        "output_crop_size": [
+          256,
+          256
+        ],
+        "output_data_format": "channels_last",
+        "output_batch_size": 6,
+        "output_image_channels": 3,
+        "num_workers": 4,
+        "prefetch_size": 21
+      }
+    }
+  },
+  "validate": {
+    "pre_transforms": [
+      {
+        "name": "LoadPng",
+        "args": {
+          "fields": [
+            "image"
+          ]
+        }
+      },
+      {
+        "name": "ScaleToShape",
+        "args": {
+          "fields": [
+            "image"
+          ],
+          "target_shape": [
+            256,
+            256
+          ]
+        }
+      },
+      {
+        "name": "ConvertToChannelsLast",
+        "args": {
+          "fields": "image"
+        }
+      },
+      {
+        "name": "RepeatChannel",
+        "args": {
+          "fields": "image",
+          "repeat_times": 3
+        }
+      },
+      {
+        "name": "CenterData",
+        "args": {
+          "fields": "image"
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "name": "ComputeAverage",
+        "args": {
+          "name": "mean_accuracy",
+          "field": "accuracy"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Average_AUC",
+          "field": "binary_preds",
+          "label_field": "binary_labels",
+          "auc_average": "macro",
+          "is_key_metric": true
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "No Finding",
+          "class_index": 0,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Enlarged Cardiomediastinum",
+          "class_index": 1,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Cardiomegaly",
+          "class_index": 2,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Lung Opacity",
+          "class_index": 3,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Lung Lesion",
+          "class_index": 4,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Edema",
+          "class_index": 5,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Consolidation",
+          "class_index": 6,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Pneumonia",
+          "class_index": 7,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Atelectasis",
+          "class_index": 8,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Pneumothorax",
+          "class_index": 9,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Pleural Effusion",
+          "class_index": 10,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Pleural Other",
+          "class_index": 11,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Fracture",
+          "class_index": 12,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Support Devices",
+          "class_index": 13,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      },
+      {
+        "name": "ComputeAUC",
+        "args": {
+          "name": "Dummy",
+          "class_index": 14,
+          "field": "binary_preds",
+          "label_field": "binary_labels"
+        }
+      }
+    ],
+    "image_pipeline": {
+      "name": "ClassificationImagePipeline",
+      "args": {
+        "data_list_file_path": "{DATASET_JSON}",
+        "data_file_base_dir": "{DATA_ROOT}",
+        "data_list_key": "validation",
+        "output_crop_size": [
+          256,
+          256
+        ],
+        "output_data_format": "channels_last",
+        "output_batch_size": 20,
+        "output_image_channels": 3,
+        "num_workers": 4,
+        "prefetch_size": 21
+      }
+    },
+    "inferer": {
+      "name": "TFSimpleInferer"
+    }
+  }
+}

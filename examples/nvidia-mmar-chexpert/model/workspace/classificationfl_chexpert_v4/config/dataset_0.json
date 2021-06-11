@@ -1,0 +1,21 @@
+{"label_format": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "training":[
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/train/patient00001/study1/view1_frontal.jpg", "label": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]}
+], "validation" : [
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/train/patient00001/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64541/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64542/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64542/study1/view2_lateral.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64543/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64544/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64545/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64546/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64547/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64547/study1/view2_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64547/study1/view3_lateral.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64548/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64549/study1/view1_frontal.jpg"},
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64550/study1/view1_frontal.jpg"} 
+], "test" : [
+{"image":"/workspace/SIIM-FL/data/CheXpert-v1.0-small/valid/patient64550/study1/view1_frontal.jpg"} 
+]
+}

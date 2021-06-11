@@ -1,0 +1,9 @@
+{
+    "DATA_ROOT": "/data",
+    "DATASET_JSON": "/data/dataset.json",
+    "PROCESSING_TASK": "classification",
+    "MMAR_EVAL_OUTPUT_PATH": "eval",
+    "MMAR_CKPT_DIR": "models",
+    "PRETRAIN_WEIGHTS_FILE": "/var/tmp/cxr_pretrain_weights.h5",
+    "train_summary_recording_interval": 1
+}

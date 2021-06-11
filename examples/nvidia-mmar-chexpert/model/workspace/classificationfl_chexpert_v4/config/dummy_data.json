@@ -1,0 +1,205 @@
+{
+
+    "label_format": [
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1,
+
+        1
+
+    ],
+
+    "training": [
+
+        {
+
+            "image": "CheXpert-v1.0-small/train/patient32175/study1/view2_lateral.png",
+
+            "label": [
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                1,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                1,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0
+
+            ]
+
+        },
+
+        {
+
+            "image": "CheXpert-v1.0-small/train/patient41939/study2/view1_frontal.png",
+
+            "label": [
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                1,
+
+                0,
+
+                0,
+
+                1,
+
+                1,
+
+                0,
+
+                0,
+
+                1,
+
+                0
+
+            ]
+
+        }
+
+    ],
+
+    "validation" : [
+
+        {
+
+            "image": "CheXpert-v1.0-small/valid/patient64541/study1/view1_frontal.png",
+
+            "label": [
+
+                0,
+
+                1,
+
+                1,
+
+                1,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                0
+
+            ]
+
+        },
+
+        {
+
+            "image": "CheXpert-v1.0-small/valid/patient64740/study1/view1_frontal.png",
+
+            "label": [
+
+                0,
+
+                1,
+
+                0,
+
+                1,
+
+                0,
+
+                0,
+
+                0,
+
+                0,
+
+                1,
+
+                0,
+
+                1,
+
+                0,
+
+                0,
+
+                0,
+
+                0
+
+            ]
+
+        }
+
+    ]
+
+}
