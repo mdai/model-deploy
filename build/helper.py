@@ -12,7 +12,7 @@ PLACEHOLDER_VALUES = {
     "{{PARENT_IMAGE}}": [],
     "{{COPY}}": ["COPY lib /src/lib/"],
     "{{COMMAND_MDAI}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; python server.py"]'],
-    "{{COMMAND_NVIDIA}}": ['CMD ["/bin/bash", "-c", "python server.py"]'],
+    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "python server.py"]'],
     "{{ENV}}": [],
 }
 
@@ -120,15 +120,34 @@ def copy_files(target_folder, docker_env):
     return [os.path.abspath(file_copy) for file_copy in copies]
 
 
-def resolve_parent_image(placeholder_dict, config, image_dict):
+def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
     framework = None
     base_image = config.get("base_image", "py37").lower()
     device_type = config.get("device_type", "cpu").lower()
     cuda_version = str(config.get("cuda_version", "11.0"))
     clara_version = config.get("clara_version", "4.0")
 
-    if base_image in ["nvidia"]:
+    if device_type not in ["cpu", "gpu"]:
+        print(
+            f"Device type '{device_type}' is not supported. Please select one from CPU or GPU.",
+            file=sys.stderr,
+        )
+        sys.exit()
+
+    if base_image == "custom":
+        try:
+            with open(os.path.join(mdai_folder, "Dockerfile")) as f:
+                parent_image = f.readlines()
+            command = "".join(parent_image)
+        except IOError:
+            print(
+                "Custom Dockerfile missing. Please upload Dockerfile in the .mdai folder.",
+                file=sys.stderr,
+            )
+            sys.exit()
+    elif base_image == "nvidia":
         parent_image = image_dict["nvidia"].get(str(clara_version))
+        command = " ".join(["FROM", parent_image])
     else:
         if device_type == "cpu":
             parent_image = image_dict.get("cpu")
@@ -136,12 +155,11 @@ def resolve_parent_image(placeholder_dict, config, image_dict):
             parent_image = image_dict["gpu"].get(cuda_version)
         else:
             print(
-                "Device type/cuda version not supported. Please check documentation for the correct versions.",
+                f"Cuda version {cuda_version} is not supported. Please check documentation for the correct versions.",
                 file=sys.stderr,
             )
             sys.exit()
-
-    command = " ".join(["FROM", parent_image])
+        command = " ".join(["FROM", parent_image])
     placeholder_dict["{{PARENT_IMAGE}}"].append(command)
 
 
@@ -160,7 +178,7 @@ def create_docker_image(args):
     if config_path is not None:
         config = process_config_file(config_path)
 
-    resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT)
+    resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT, mdai_folder)
     add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))

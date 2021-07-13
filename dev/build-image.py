@@ -22,7 +22,7 @@ hot_reload_values = {
     "{{COMMAND_MDAI}}": [
         'CMD ["/bin/bash", "-c", "source activate mdai-env ; ./main.sh /src/lib"]'
     ],
-    "{{COMMAND_NVIDIA}}": ['CMD ["/bin/bash", "-c", "./main.sh /src/lib"]'],
+    "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "./main.sh /src/lib"]'],
     "{{ENV}}": [],
 }
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         if config_file is not None:
             config = helper.process_config_file(config_file)
 
-        if config.get("base_image").lower() in ["nvidia"]:
+        if config.get("base_image").lower() in ["nvidia", "custom"]:
             hot_reload_values["{{COPY}}"].append(
                 'RUN /bin/bash -c "pip install watchdog argh pyyaml"',
             )
@@ -115,7 +115,9 @@ if __name__ == "__main__":
 
         placeholder_values = hot_reload_values
 
-        helper.resolve_parent_image(placeholder_values, config, helper.PARENT_IMAGE_DICT)
+        helper.resolve_parent_image(
+            placeholder_values, config, helper.PARENT_IMAGE_DICT, mdai_folder
+        )
         helper.add_env_variables(placeholder_values, config.get("env"))
         relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
         os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
