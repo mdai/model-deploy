@@ -28,12 +28,12 @@ pip install -r requirements.txt
 
 ### File Structure
 
-The file structure below needs to be followed. Create a root folder named `model`. Inside this folder, store your pretrained model file. Along with this, create a sub folder named `.mdai` and all the MD.ai interface related build files need to be placed inside this folder.
+The file structure below needs to be followed. Create a root folder named `model`. Inside this folder, store your pre-trained model file. Along with this, create a subfolder named `.mdai` and all the MD.ai related build files need to be placed inside this folder.
 
 ```sh
 model/
   |__ .mdai/
-      |__ config.yml            # Contains configuration parameters to be used during bulid
+      |__ config.yml            # Contains configuration parameters to be used during build
       |__ mdai_deploy.py        # Framework which communicates between server and model
       |__ requirements.txt      # Lists the libraries needed to run the model
   |__ model_file.pth            # Pretrained model checkpoint file
@@ -42,14 +42,14 @@ model/
 The uploaded model assets file should be a compressed file: accepted formats are `.zip` and `.tar.gz`. To compress the model folder, use the following command:
 
 ```sh
-// compress to .zip
+# compress to .zip
 zip -r model.zip /path/to/model
 ```
 
-Or
+or
 
 ```sh
-// compress to .tar.gz
+# compress to .tar.gz
 tar -czvf model.tar.gz /path/to/model
 ```
 
@@ -77,7 +77,7 @@ dev/run-image.py
 
 ### Testing the image
 
-The output from the container can be tested using the `dev/inference.py` script. This sends images to the deployed model to be tested and recieves results in json
+The output from the container can be tested using the `dev/inference.py` script. This sends images to the deployed model to be tested and receives results as JSON.
 
 ```sh
 dev/inference.py <path_to_test_data>
