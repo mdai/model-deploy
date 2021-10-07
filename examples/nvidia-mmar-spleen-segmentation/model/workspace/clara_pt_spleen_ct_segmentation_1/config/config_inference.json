@@ -1,6 +1,6 @@
 {
   "multi_gpu": false,
-  "amp": false,
+  "amp": true,
   "model": {
     "ts_path": "{MMAR_TORCHSCRIPT}"
   },
@@ -68,7 +68,7 @@
     "args": {
       "batch_size": 1,
       "shuffle": false,
-      "num_workers": 0
+      "num_workers": 4
     }
   },
   "inferer": {
@@ -79,7 +79,7 @@
         160,
         160
       ],
-      "sw_batch_size": 1,
+      "sw_batch_size": 4,
       "overlap": 0.6
     }
   },

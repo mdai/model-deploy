@@ -11,15 +11,57 @@ import numpy as np
 
 class MDAIModel:
     def __init__(self):
-        self.root_path = "/workspace/clara_pt_spleen_ct_segmentation_1"
+        # Read config for mdai
+        self.mdai_config_path = "/workspace/config_mdai.json"
+        with open(self.mdai_config_path, "r") as f:
+            mdai_config = json.load(f)
+
+        # Set MMAR root folder name
+        self.root_path = os.path.join("/workspace", mdai_config["root_folder"])
+        self.config_path = os.path.join(self.root_path, "config")
+        self.out_classes = mdai_config["out_classes"]
+        self.data_key = mdai_config["data_list_key"]
+
+        # Create /workspace/data folder if not exists
         self.data_path = "/workspace/data"
+        if not os.path.exists(self.data_path):
+            os.mkdir(self.data_path)
+
+        # Create /workspace/eval folder if not exists
         self.eval_path = "/workspace/eval"
+        if not os.path.exists(self.eval_path):
+            os.mkdir(self.eval_path)
+
+        # Set DATA_ROOT and MMAR_EVAL_OUTPUT_PATH in environment.json
+        self.env_file = os.path.join(self.config_path, "environment.json")
+        with open(os.path.join(self.env_file), "r") as f:
+            env_json = json.load(f)
+
+        env_json["DATA_ROOT"] = self.data_path
+        env_json["MMAR_EVAL_OUTPUT_PATH"] = self.eval_path
+        self.dataset_json_path = os.path.join(self.root_path, env_json["DATASET_JSON"])
+
+        with open(os.path.join(self.env_file), "w") as f:
+            json.dump(env_json, f)
+
+        # Change batch size to 1 in config_inference.json
+        self.config_inf = os.path.join(self.config_path, "config_inference.json")
+        with open(os.path.join(self.config_inf), "r") as f:
+            inf_json = json.load(f)
+
+        inf_json["dataloader"]["args"]["batch_size"] = 1
+        inf_json["dataloader"]["args"]["num_workers"] = 0
+        inf_json["inferer"]["sw_batch_size"] = 1
+
+        with open(os.path.join(self.config_inf), "w") as f:
+            json.dump(inf_json, f)
 
     def predict(self, data):
         """
         See https://github.com/mdai/model-deploy/blob/master/mdai/server.py for details on the
         schema of `data` and the required schema of the outputs returned by this function.
         """
+
         input_files = data["files"]
         outputs = []
         dicom_files = []
@@ -45,12 +87,19 @@ class MDAIModel:
         )
 
         # Edit dataset_test.json file with new data path
-        with open(os.path.join(self.data_path, "dataset_test.json"), "r") as f:
+        with open(self.dataset_json_path, "r") as f:
             dataset_json = json.load(f)
 
-        dataset_json["test"] = [nifti_file["NII_FILE"]]
+        first_data_entry = dataset_json[self.data_key][0]
+        if type(first_data_entry) == str:
+            dataset_json[self.data_key] = [nifti_file["NII_FILE"]]
+        elif type(first_data_entry) == dict:
+            if "label" in first_data_entry:
+                dataset_json[self.data_key] = [{"image": nifti_file["NII_FILE"], "label": None}]
+            else:
+                dataset_json[self.data_key] = [{"image": nifti_file["NII_FILE"]}]
 
-        with open(os.path.join(self.data_path, "dataset_test.json"), "w") as f:
+        with open(self.dataset_json_path, "w") as f:
             json.dump(dataset_json, f)
 
         # Run model
@@ -62,21 +111,26 @@ class MDAIModel:
         ).get_fdata()
 
         # Return outputs to interface
-        for ds, mask in zip(dicom_files, np.transpose(result, (2, 0, 1))):
-            if np.sum(mask) > 0:
-                mask = np.flip(np.rot90(mask), axis=1)
-                outputs.append(
-                    {
-                        "type": "ANNOTATION",
-                        "study_uid": str(ds.StudyInstanceUID),
-                        "series_uid": str(ds.SeriesInstanceUID),
-                        "instance_uid": str(ds.SOPInstanceUID),
-                        "class_index": 0,
-                        "data": {"mask": mask.tolist()},
-                    }
-                )
-
+        for ds, seg_mask in zip(dicom_files, np.transpose(result, (2, 0, 1))):
+            masks = [
+                (np.flip(np.rot90(seg_mask == t + 1), axis=1), t)
+                for t in range(self.out_classes - 1)
+                if np.sum(seg_mask == t + 1) > 0
+            ]
+            if masks:
+                for mask in masks:
+                    outputs.append(
+                        {
+                            "type": "ANNOTATION",
+                            "study_uid": str(ds.StudyInstanceUID),
+                            "series_uid": str(ds.SeriesInstanceUID),
+                            "instance_uid": str(ds.SOPInstanceUID),
+                            "class_index": mask[1],
+                            "data": {"mask": mask[0].tolist()},
+                        }
+                    )
             else:
+                # Return default NONE output is there is no prediction
                 outputs.append(
                     {
                         "type": "NONE",
