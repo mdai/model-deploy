@@ -19,6 +19,7 @@ PLACEHOLDER_VALUES = {
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
     "gpu": {
+        "11.3": "gcr.io/deeplearning-platform-release/base-cu113",
         "11.0": "gcr.io/deeplearning-platform-release/base-cu110",
         "10.1": "gcr.io/deeplearning-platform-release/base-cu101",
         "10.0": "gcr.io/deeplearning-platform-release/base-cu100",
