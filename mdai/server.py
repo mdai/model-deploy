@@ -148,8 +148,8 @@ async def inference(request: Request):
     return resp
 
 
-@app.post("/testing-on-batch")
-async def testing_on_batch(request: Request):
+@app.post("/validation-on-batch")
+async def validation_on_batch(request: Request):
     """
     Route for model metrics evaluation.
     The POST body is msgpack-serialized binary data with the follow schema:
@@ -207,7 +207,7 @@ async def testing_on_batch(request: Request):
         raise HTTPException(status_code=400)
     body = await request.body()
 
-    def _testing_on_batch(body):
+    def _validation_on_batch(body):
         data = msgpack.unpackb(body, raw=False)
 
         try:
@@ -227,12 +227,12 @@ async def testing_on_batch(request: Request):
         )
         return resp
 
-    resp = await loop.run_in_executor(executor, _testing_on_batch, body)
+    resp = await loop.run_in_executor(executor, _validation_on_batch, body)
     return resp
 
 
-@app.post("/reduce-batch-testing-results")
-async def reduce_batch_testing_results(request: Request):
+@app.post("/reduce-batch-validation-results")
+async def reduce_batch_validation_results(request: Request):
     """
     Route for metric reduction.
     The POST body is msgpack-serialized binary data with the follow schema:
@@ -263,7 +263,7 @@ async def reduce_batch_testing_results(request: Request):
         raise HTTPException(status_code=400)
     body = await request.body()
 
-    def _reduce_batch_testing_results(body):
+    def _reduce_batch_validation_results(body):
         data = msgpack.unpackb(body, raw=False)
 
         try:
@@ -290,7 +290,7 @@ async def reduce_batch_testing_results(request: Request):
         )
         return resp
 
-    resp = await loop.run_in_executor(executor, _reduce_batch_testing_results, body)
+    resp = await loop.run_in_executor(executor, _reduce_batch_validation_results, body)
     return resp
 
 
@@ -315,13 +315,13 @@ def version():
     return Response(status_code=200, content=MDAI_DEPLOY_API_VERSION)
 
 
-@app.get("/has-testing-metrics")
-def has_testing_metrics():
+@app.get("/has-validation-metrics")
+def has_validation_metrics():
     """Route for metric evaluation check."""
     headers = {"Content-Type": "application/msgpack"}
-    data = {"hasTestingMetrics": False}
+    data = {"hasValidationMetrics": False}
     if hasattr(mdai_model, "evaluate_on_batch") and callable(mdai_model.evaluate_on_batch):
-        data["hasTestingMetrics"] = True
+        data["hasValidationMetrics"] = True
     return Response(
         status_code=200, content=msgpack.packb(data, use_bin_type=True), headers=headers
     )

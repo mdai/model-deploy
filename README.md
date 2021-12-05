@@ -5,11 +5,11 @@
 - [MD.ai Interface Code](https://docs.md.ai/models/interface-code/)
 - [Deploying Models](https://docs.md.ai/models/deploy-models/)
 - [Inference](https://docs.md.ai/models/inference/)
-- ...more to come, including training and testing
+- ...more to come, including training and validation
 
 ## Examples
 
-Example model deployments for training/testing/inference on MD.ai are located in the `examples/` folder.
+Example model deployments for training/validation/inference on MD.ai are located in the `examples/` folder.
 
 ## Development [MD.ai Internal Only]
 
