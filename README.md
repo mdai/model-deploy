@@ -93,4 +93,4 @@ dev/profile.py
 
 ---
 
-&copy; 2020 MD.ai, Inc.
+&copy; 2022 MD.ai, Inc.
