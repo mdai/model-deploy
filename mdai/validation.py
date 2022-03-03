@@ -21,7 +21,7 @@ class OutputValidator:
             "frame_number": [int, type(None)],
             "class_index": int,
             "data": [dict, type(None)],
-            "probability": [float, type(None)],
+            "probability": [float, list, type(None)],
             "explanations": [list, type(None)],
         }
 
