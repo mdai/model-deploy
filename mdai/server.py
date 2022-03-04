@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 from uvicorn import Config, Server
+import traceback
 
 from validation import OutputValidator
 
@@ -124,7 +125,7 @@ async def inference(request: Request):
             results = mdai_model.predict(data)
         except Exception as e:
             logger.exception(e)
-            text = f"Error running model: {str(e)}"
+            text = f"Error running model: {traceback.format_exc()}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
         finally:
@@ -134,7 +135,7 @@ async def inference(request: Request):
             output_validator.validate(results)
         except Exception as e:
             logger.exception(e)
-            text = f"Invalid data format returned by model: {str(e)}"
+            text = f"Invalid data format returned by model: {traceback.format_exc()}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
 
@@ -215,7 +216,7 @@ async def validation_on_batch(request: Request):
             results = mdai_model.evaluate_on_batch(data)
         except Exception as e:
             logger.exception(e)
-            text = f"Error calculating metrics: {str(e)}"
+            text = f"Error calculating metrics: {traceback.format_exc()}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
         finally:
@@ -278,7 +279,7 @@ async def reduce_batch_validation_results(request: Request):
                 results.append(result)
         except Exception as e:
             logger.exception(e)
-            text = f"Error in reduction: {str(e)}"
+            text = f"Error in reduction: {traceback.format_exc()}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
         finally:
