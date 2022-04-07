@@ -63,7 +63,9 @@ class MDAIModel:
                 "series_uid": str(ds.SeriesInstanceUID),
                 "instance_uid": str(ds.SOPInstanceUID),
                 "class_index": int(class_index),
-                "probability": float(probability),
+                "probability": [
+                    {"class_index": i, "probability": float(j)} for i, j in enumerate(y_prob[0])
+                ],
                 "explanations": [
                     {
                         "name": "Grad-CAM",
@@ -98,7 +100,7 @@ class MDAIModel:
             "errors": [],
         }
 
-        for i, file in enumerate(input_files):
+        for _, file in enumerate(input_files):
             if file["content_type"] != "application/dicom":
                 continue
 
@@ -110,7 +112,6 @@ class MDAIModel:
             y_classes = y_prob.argmax(axis=-1)
 
             class_index = y_classes[0]
-            probability = y_prob[0][class_index]
 
             target = next(
                 item

@@ -94,7 +94,7 @@ async def inference(request: Request):
             "frame_number": "int",
             "class_index": "int",
             "data": {},
-            "probability": "float",
+            "probability": "float" or "list[dict[str, float]]",
             "explanations": [
                 {
                     "name": "str",
@@ -187,7 +187,7 @@ async def validation_on_batch(request: Request):
         metrics: [
             {
                 "name": "str", # For example, 'Mean Square Error'
-                "values": "float[]",
+                "values": "list[float]",
                 "reduction": "str", # 'mean' or 'sum'
             },
             ...
@@ -241,7 +241,7 @@ async def reduce_batch_validation_results(request: Request):
     [
         {
             "name": "str", # For example, 'Mean Squared Error'
-            "values": "float[]",
+            "values": "list[float]",
             "reduction": "str", # 'mean' or 'sum'
         },
         ...
