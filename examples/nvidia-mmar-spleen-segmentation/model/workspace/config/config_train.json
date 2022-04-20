@@ -1,0 +1,394 @@
+{
+  "epochs": 1260,
+  "num_interval_per_valid": 1,
+  "learning_rate": 2e-3,
+  "multi_gpu": false,
+  "amp": true,
+  "determinism": {
+    "random_seed": 0
+  },
+  "cudnn_benchmark": false,
+  "dont_load_ckpt_model": true,
+  "network_summary": {
+    "network": "@model",
+    "input_size": [2, 1, 96, 96, 96]
+  },
+  "train": {
+    "loss": {
+      "name": "DiceCELoss",
+      "args":{
+        "to_onehot_y": true,
+        "softmax": true,
+        "squared_pred": true,
+        "batch": true
+      }
+    },
+    "optimizer": {
+      "name": "Novograd",
+      "args": {
+        "params": "#@model.parameters()",
+        "lr": "{learning_rate}"
+      }
+    },
+    "lr_scheduler": {
+      "name": "StepLR",
+      "args": {
+        "optimizer": "@optimizer",
+        "step_size": 5000,
+        "gamma": 0.1
+      }
+    },
+    "model": {
+      "name": "UNet",
+      "args": {
+        "spatial_dims": 3,
+        "in_channels": "{INPUT_CHANNELS}",
+        "out_channels": "{OUTPUT_CHANNELS}",
+        "channels": [16, 32, 64, 128, 256],
+        "strides": [2, 2, 2, 2],
+        "num_res_units": 2,
+        "norm": "batch"
+      }
+    },
+    "pre_transforms": [
+      {
+        "name": "LoadImaged",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ]
+        }
+      },
+      {
+        "name": "AddChanneld",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ]
+        }
+      },
+      {
+        "name": "Orientationd",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ],
+          "axcodes": "RAS"
+        }
+      },
+      {
+        "name": "Spacingd",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ],
+          "pixdim": [1.5, 1.5, 2.0],
+          "mode": ["bilinear", "nearest"]
+        }
+      },
+      {
+        "name": "ScaleIntensityRanged",
+        "args": {
+          "keys": "image",
+          "a_min": -57,
+          "a_max": 164,
+          "b_min": 0.0,
+          "b_max": 1.0,
+          "clip": true
+        }
+      },
+      {
+        "name": "CropForegroundd",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ],
+          "source_key": "image"
+        }
+      },
+      {
+        "name": "FgBgToIndicesd",
+        "args": {
+          "keys": "label",
+          "fg_postfix": "_fg",
+          "bg_postfix": "_bg",
+          "image_key": "image"          
+        }
+      },
+      {
+      	"name": "EnsureTyped",
+      	"args": {
+      	  "keys": [
+      	    "image",
+      	    "label"
+      	  ]
+      	}
+      },
+      {
+      	"name": "ToDeviced",
+      	"args": {
+      	  "keys": [
+      	    "image",
+      	    "label"
+      	  ],
+      	  "device": "cuda"
+      	}
+      },
+      {
+        "name": "RandCropByPosNegLabeld",
+        "args": {
+          "keys": [
+            "image",
+            "label"
+          ],
+          "label_key": "label",
+          "spatial_size": [
+            96,
+            96,
+            96
+          ],
+          "pos": 1,
+          "neg": 1,
+          "num_samples": 4,
+          "fg_indices_key": "label_fg",
+          "bg_indices_key": "label_bg"
+        }
+      },
+      {
+        "name": "RandShiftIntensityd",
+        "args": {
+          "keys": "image",
+          "offsets": 0.1,
+          "prob": 0.5
+        }
+      }
+    ],
+    "dataset": {
+      "name": "CacheDataset",
+      "data_list_file_path": "{DATASET_JSON}",
+      "data_file_base_dir": "{DATA_ROOT}",
+      "data_list_key": "{TRAIN_DATALIST_KEY}",
+      "args": {
+        "transform": "@pre_transforms",
+        "cache_rate": 1,
+        "num_workers": 8,
+        "copy_cache": false
+      }
+    },
+    "dataloader": {
+      "name": "ThreadDataLoader",
+      "args": {
+        "dataset": "@dataset",
+        "batch_size": 4,
+        "shuffle": true,
+        "num_workers": 0
+      }
+    },
+    "inferer": {
+      "name": "SimpleInferer"
+    },
+    "handlers": [
+      {
+        "name": "CheckpointLoader",
+        "disabled": "{dont_load_ckpt_model}",
+        "args": {
+          "load_path": "{MMAR_CKPT}",
+          "load_dict": {"model": "@model"}
+        }
+      },
+      {
+        "name": "LrScheduleHandler",
+        "args": {
+          "lr_scheduler": "@lr_scheduler",
+          "print_lr": true
+        }
+      },
+      {
+        "name": "ValidationHandler",
+        "args": {
+          "validator": "@evaluator",
+          "epoch_level": true,
+          "interval": "{num_interval_per_valid}"
+        }
+      },
+      {
+        "name": "StatsHandler",
+        "rank": 0,
+        "args": {
+          "tag_name": "train_loss",
+          "output_transform": "#monai.handlers.from_engine(['loss'], first=True)"
+        }
+      },
+      {
+        "name": "TensorBoardStatsHandler",
+        "rank": 0,
+        "args": {
+          "log_dir": "{MMAR_CKPT_DIR}",
+          "tag_name": "train_loss",
+          "output_transform": "#monai.handlers.from_engine(['loss'], first=True)"
+        }
+      }
+    ],
+    "post_transforms": [
+      {
+        "name": "AsDiscreted",
+        "args": {
+          "keys": ["pred", "label"],
+          "argmax": [true, false],
+          "to_onehot": 2
+        }
+      }
+    ],
+    "key_metric": {
+      "name": "Accuracy",
+      "log_label": "train_acc",
+      "args": {
+        "output_transform": "#monai.handlers.from_engine(['pred', 'label'])"
+      }
+    },
+    "trainer": {
+      "name": "SupervisedTrainer",
+      "args": {
+        "max_epochs": "{epochs}",
+        "device": "cuda",
+        "train_data_loader": "@dataloader",
+        "network": "@model",
+        "loss_function": "@loss",
+        "optimizer": "@optimizer",
+        "inferer": "@inferer",
+        "postprocessing": "@post_transforms",
+        "key_train_metric": "@key_metric",
+        "train_handlers": "@handlers",
+        "amp": "{amp}"
+      }
+    }
+  },
+  "validate": {
+    "pre_transforms": [
+      {
+        "ref": "LoadImaged"
+      },
+      {
+        "ref": "AddChanneld"
+      },
+      {
+        "ref": "Orientationd"
+      },
+      {
+        "ref": "Spacingd"
+      },
+      {
+        "ref": "ScaleIntensityRanged"
+      },
+      {
+        "ref": "CropForegroundd"
+      },
+      {
+        "ref": "EnsureTyped"
+      },
+      {
+        "ref": "ToDeviced"
+      }
+    ],
+    "dataset": {
+      "name": "CacheDataset",
+      "data_list_file_path": "{DATASET_JSON}",
+      "data_file_base_dir": "{DATA_ROOT}",
+      "data_list_key": "{VAL_DATALIST_KEY}",
+      "args": {
+        "transform": "@pre_transforms",
+        "cache_rate": 1.0,
+        "num_workers": 5,
+        "copy_cache": false
+      }
+    },
+    "dataloader": {
+      "name": "ThreadDataLoader",
+      "args": {
+        "dataset": "@dataset",
+        "batch_size": 1,
+        "shuffle": false,
+        "num_workers": 0
+      }
+    },
+    "inferer": {
+      "name": "SlidingWindowInferer",
+      "args": {
+        "roi_size": [
+          160,
+          160,
+          160
+        ],
+        "sw_batch_size": 4,
+        "overlap": 0.25
+      }
+    },
+    "handlers": [
+      {
+        "name": "StatsHandler",
+        "rank": 0,
+        "args": {
+          "output_transform": "lambda x: None"
+        }
+      },
+      {
+        "name": "TensorBoardStatsHandler",
+        "rank": 0,
+        "args": {
+          "log_dir": "{MMAR_CKPT_DIR}",
+          "output_transform": "lambda x: None"
+        }
+      },
+      {
+        "name": "CheckpointSaver",
+        "rank": 0,
+        "args": {
+          "save_dir": "{MMAR_CKPT_DIR}",
+          "save_dict": {"model": "@model", "train_conf": "@conf"},
+          "save_key_metric": true
+        }
+      }
+    ],
+    "post_transforms": [
+      {
+        "ref": "AsDiscreted"
+      }
+    ],
+    "key_metric": {
+      "name": "MeanDice",
+      "log_label": "val_mean_dice",
+      "args": {
+        "include_background": true,
+        "output_transform": "#monai.handlers.from_engine(['pred', 'label'])"
+      }
+    },
+    "additional_metrics": [
+      {
+        "name": "Accuracy",
+        "log_label": "val_acc",
+        "args": {
+          "output_transform": "#monai.handlers.from_engine(['pred', 'label'])"
+        }
+      }
+    ],
+    "evaluator": {
+      "name": "SupervisedEvaluator",
+      "args": {
+        "device": "cuda",
+        "val_data_loader": "@dataloader",
+        "network": "@model",
+        "inferer": "@inferer",
+        "postprocessing": "@post_transforms",
+        "key_val_metric": "@key_metric",
+        "additional_metrics": "@additional_metrics",
+        "val_handlers": "@handlers",
+        "amp": "{amp}"
+      }
+    }
+  }
+}

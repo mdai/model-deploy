@@ -1,6 +1,0 @@
-{
-    "type": "segmentation",
-    "root_folder": "clara_pt_spleen_ct_segmentation_1",
-    "out_classes": 2,
-    "data_list_key": "test"
-}

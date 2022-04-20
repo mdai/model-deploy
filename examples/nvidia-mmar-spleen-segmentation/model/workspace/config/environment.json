@@ -1,0 +1,15 @@
+{
+    "CLARA_TRAIN_VERSION": "4.1.0",
+    "DATA_ROOT": "/workspace/data/Task09_Spleen",
+    "DATASET_JSON": "config/dataset_0.json",
+    "PROCESSING_TASK": "segmentation",
+    "TRAIN_DATALIST_KEY": "training",
+    "VAL_DATALIST_KEY": "validation",
+    "INFER_DATALIST_KEY": "test",
+    "MMAR_EVAL_OUTPUT_PATH": "eval",
+    "MMAR_CKPT_DIR": "models",
+    "MMAR_CKPT": "models/model.pt",
+    "MMAR_TORCHSCRIPT": "models/model.ts",
+    "INPUT_CHANNELS": 1,
+    "OUTPUT_CHANNELS": 2
+}

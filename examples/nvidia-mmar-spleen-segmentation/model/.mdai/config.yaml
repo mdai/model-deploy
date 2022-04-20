@@ -1,3 +1,2 @@
 base_image: nvidia
-clara_version: 4.0
 device_type: gpu

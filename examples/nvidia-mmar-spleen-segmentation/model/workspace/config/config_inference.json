@@ -1,0 +1,157 @@
+{
+  "multi_gpu": false,
+  "amp": true,
+  "model": {
+    "ts_path": "{MMAR_TORCHSCRIPT}"
+  },
+  "pre_transforms": [
+    {
+      "name": "LoadImaged",
+      "args": {
+        "keys": [
+          "image"
+        ]
+      }
+    },
+    {
+      "name": "AddChanneld",
+      "args": {
+        "keys": [
+          "image"
+        ]
+      }
+    },
+    {
+      "name": "Orientationd",
+      "args": {
+        "keys": "image",
+        "axcodes": "RAS"
+      }
+    },
+    {
+      "name": "Spacingd",
+      "args": {
+        "keys":  "image",
+        "pixdim": [1.5, 1.5, 2.0],
+        "mode": "bilinear"
+      }
+    },
+    {
+      "name": "ScaleIntensityRanged",
+      "args": {
+        "keys": "image",
+        "a_min": -57,
+        "a_max": 164,
+        "b_min": 0.0,
+        "b_max": 1.0,
+        "clip": true
+      }
+    },
+    {
+      "name": "CropForegroundd",
+      "args": {
+        "keys": [
+          "image"
+        ],
+        "source_key": "image"
+      }
+    },
+    {
+      "name": "ToTensord",
+      "args": {
+        "keys": [
+          "image"
+        ]
+      }
+    }
+  ],
+  "dataset": {
+    "name": "Dataset",
+    "data_list_file_path": "{DATASET_JSON}",
+    "data_file_base_dir": "{DATA_ROOT}",
+    "data_list_key": "{INFER_DATALIST_KEY}",
+    "args": {
+      "transform": "@pre_transforms"
+    }
+  },
+  "dataloader": {
+    "name": "DataLoader",
+    "args": {
+      "dataset": "@dataset",
+      "batch_size": 1,
+      "shuffle": false,
+      "num_workers": 4
+    }
+  },
+  "inferer": {
+    "name": "SlidingWindowInferer",
+    "args": {
+      "roi_size": [
+        160,
+        160,
+        160
+      ],
+      "sw_batch_size": 4,
+      "overlap": 0.5
+    }
+  },
+  "handlers": [
+    {
+      "name": "StatsHandler",
+      "rank": 0,
+      "args": {
+        "output_transform": "lambda x: None"
+      }
+    }
+  ],
+  "post_transforms": [
+    {
+      "name": "Activationsd",
+      "args": {
+        "keys": "pred",
+        "softmax": true
+      }
+    },
+    {
+      "name": "Invertd",
+      "args": {
+        "keys": "pred",
+        "transform": "@pre_transforms",
+        "orig_keys": "image",
+        "meta_keys": "pred_meta_dict",
+        "nearest_interp": false,
+        "to_tensor": true,
+        "device": "cuda"
+      }
+    },
+    {
+      "name": "AsDiscreted",
+      "args": {
+        "keys": "pred",
+        "argmax": true
+      }
+    },
+    {
+      "name": "SaveImaged",
+      "args": {
+        "keys": "pred",
+        "meta_keys": "pred_meta_dict",
+        "output_dir": "{MMAR_EVAL_OUTPUT_PATH}",
+        "resample": false,
+        "squeeze_end_dims": true
+      }
+    }
+  ],
+  "evaluator": {
+    "name": "SupervisedEvaluator",
+    "args": {
+      "device": "cuda",
+      "val_data_loader": "@dataloader",
+      "network": "@model",
+      "inferer": "@inferer",
+      "postprocessing": "@post_transforms",
+      "val_handlers": "@handlers",
+      "amp": "{amp}"
+    }
+  }
+}

@@ -25,6 +25,7 @@ PARENT_IMAGE_DICT = {
         "10.0": "gcr.io/deeplearning-platform-release/base-cu100",
     },
     "nvidia": {
+        "4.1.0": "nvcr.io/nvidia/clara-train-sdk:v4.1",
         "4.0": "nvcr.io/nvidia/clara-train-sdk:v4.0",
         "3.1.01": "nvcr.io/nvidia/clara-train-sdk:v3.1.01",
         "3.1": "nvcr.io/nvidia/clara-train-sdk:v3.1",
@@ -126,7 +127,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
     base_image = config.get("base_image", "py37").lower()
     device_type = config.get("device_type", "cpu").lower()
     cuda_version = str(config.get("cuda_version", "11.0"))
-    clara_version = config.get("clara_version", "4.0")
+    clara_version = config.get("clara_version", "4.1.0")
 
     if device_type not in ["cpu", "gpu"]:
         print(
@@ -147,6 +148,9 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
             )
             sys.exit()
     elif base_image == "nvidia":
+        if clara_version not in ["4.1.0"]:
+            print("Only NVIDIA Clara v4.1.0 models are supported currently.", file=sys.stderr)
+            sys.exit()
         parent_image = image_dict["nvidia"].get(str(clara_version))
         command = " ".join(["FROM", parent_image])
     else:

@@ -3,7 +3,6 @@ from io import BytesIO
 import pydicom
 import json
 import subprocess
-import pandas
 import dicom2nifti
 import nibabel
 import numpy as np
@@ -11,16 +10,14 @@ import numpy as np
 
 class MDAIModel:
     def __init__(self):
-        # Read config for mdai
-        self.mdai_config_path = "/workspace/config_mdai.json"
-        with open(self.mdai_config_path, "r") as f:
-            mdai_config = json.load(f)
-
         # Set MMAR root folder name
-        self.root_path = os.path.join("/workspace", mdai_config["root_folder"])
+        self.root_path = os.path.join("/workspace")
         self.config_path = os.path.join(self.root_path, "config")
-        self.out_classes = mdai_config["out_classes"]
-        self.data_key = mdai_config["data_list_key"]
+        self.env_file = os.path.join(self.config_path, "environment.json")
+
+        # Load env file
+        with open(os.path.join(self.env_file), "r") as f:
+            env_json = json.load(f)
 
         # Create /workspace/data folder if not exists
         self.data_path = "/workspace/data"
@@ -33,12 +30,11 @@ class MDAIModel:
             os.mkdir(self.eval_path)
 
         # Set DATA_ROOT and MMAR_EVAL_OUTPUT_PATH in environment.json
-        self.env_file = os.path.join(self.config_path, "environment.json")
-        with open(os.path.join(self.env_file), "r") as f:
-            env_json = json.load(f)
-
         env_json["DATA_ROOT"] = self.data_path
         env_json["MMAR_EVAL_OUTPUT_PATH"] = self.eval_path
+
+        self.out_classes = env_json["OUTPUT_CHANNELS"]
+        self.data_key = env_json["INFER_DATALIST_KEY"]
         self.dataset_json_path = os.path.join(self.root_path, env_json["DATASET_JSON"])
 
         with open(os.path.join(self.env_file), "w") as f:
@@ -73,17 +69,23 @@ class MDAIModel:
             dicom_files.append(pydicom.dcmread(BytesIO(file["content"])))
 
         dicom_files = dicom2nifti.common.sort_dicoms(dicom_files)
+        positions = [ds.ImagePositionPatient for ds in dicom_files]
+        reverse = (
+            False if positions[0][0] < 0 or positions[0][1] < 0 or positions[0][2] < 0 else True
+        )
 
         # Flip pixel data to get LAS orientation
-        for ds in dicom_files:
-            arr = np.flip(ds.pixel_array, 1)
-            ds.PixelData = arr.tobytes()
+        if reverse:
+            for i, ds in enumerate(dicom_files):
+                ds.ImagePositionPatient = positions[len(positions) - i - 1]
 
         # Convert dicom to nifti
         file_name = dicom_files[0].SeriesInstanceUID
         output_file = os.path.join(self.data_path, file_name + ".nii.gz")
         nifti_file = dicom2nifti.convert_dicom.dicom_array_to_nifti(
-            dicom_files, output_file=output_file, reorient_nifti=True,
+            dicom_files,
+            output_file=output_file,
+            reorient_nifti=True,
         )
 
         # Edit dataset_test.json file with new data path
@@ -107,13 +109,21 @@ class MDAIModel:
 
         # Load predictions
         result = nibabel.load(
-            os.path.join(self.eval_path, file_name, file_name + "_seg.nii.gz",)
+            os.path.join(
+                self.eval_path,
+                file_name,
+                file_name + "_trans.nii.gz",
+            )
         ).get_fdata()
 
         # Return outputs to interface
-        for ds, seg_mask in zip(dicom_files, np.transpose(result, (2, 0, 1))):
+        result = np.transpose(result, (2, 0, 1))
+        if reverse:
+            result = result[::-1]
+
+        for ds, seg_mask in zip(dicom_files, result):
             masks = [
-                (np.flip(np.rot90(seg_mask == t + 1), axis=1), t)
+                (np.rot90(seg_mask == t + 1), t)
                 for t in range(self.out_classes - 1)
                 if np.sum(seg_mask == t + 1) > 0
             ]
