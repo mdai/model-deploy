@@ -135,7 +135,7 @@ async def inference(request: Request):
             output_validator.validate(results)
         except Exception as e:
             logger.exception(e)
-            text = f"Invalid data format returned by model: {traceback.format_exc()}"
+            text = f"Invalid data format returned by model: {e}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
 
