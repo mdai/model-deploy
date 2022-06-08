@@ -38,7 +38,7 @@ class OutputValidator:
             "point": None,
             "box": None,
             "vertices": self.validate_data_with_vertices,
-            "mask": None,
+            "mask": self.validate_data_with_mask,
         }
 
     def validate(self, outputs):
@@ -112,4 +112,25 @@ class OutputValidator:
                 "Invalid vertex data type. Got {} Expected {}".format(
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
                 )
+            )
+
+    def validate_data_with_mask(self, data):
+        MASK_TYPE = [int, float]
+
+        mask = data.get("mask")
+        if len(mask) == 0:
+            return
+
+        if type(mask[0]) != list:
+            raise InvalidFormatException(
+                "Mask needs to be returned as a 2D python list.\nNumpy arrays can be converted to lists using the .tolist() method"
+            )
+
+        if len(mask[0]) == 0:
+            return
+
+        mask_value = mask[0][0]
+        if not type(mask_value) in MASK_TYPE:
+            raise InvalidFormatException(
+                "Invalid mask data type. Got {} Expected {}".format(type(mask_value), MASK_TYPE)
             )
