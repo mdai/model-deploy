@@ -77,13 +77,15 @@ class OutputValidator:
                 data_format = data_type
 
         if data_format is None:
-            raise InvalidFormatException("data field does not conform to any known format")
+            raise InvalidFormatException(
+                "Model output data field does not conform to any known format."
+            )
 
         for key in output["data"].keys():
             if not isinstance(output["data"][key], self.data_types[data_format][key]):
                 raise InvalidFormatException(
-                    "Invalid data type for {} expected {}".format(
-                        type(output["data"][key]), self.data_types[data_format][key]
+                    "Invalid type for key '{}' in data. Expected {}, got {}".format(
+                        key, self.data_types[data_format][key], type(output["data"][key])
                     )
                 )
 
@@ -103,7 +105,9 @@ class OutputValidator:
 
         if len(vertices[0]) != VERTEX_DIMENSIONS:
             raise InvalidFormatException(
-                "Each vertex needs to have only 2 values [x, y] got {}".format(len(vertices[0]))
+                "Each vertex needs to have only 2 values [x, y] got {} values.".format(
+                    len(vertices[0])
+                )
             )
 
         vertex = vertices[0]
