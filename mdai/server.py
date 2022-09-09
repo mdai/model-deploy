@@ -53,15 +53,33 @@ async def inference(request: Request):
         ],
         "annotations": [
             {
+                "id": "str",
+                "label_id": "str",
                 "study_uid": "str",
                 "series_uid": "str",
                 "instance_uid": "str",
                 "frame_number": "int",
-                "class_index": "int",
                 "data": "any",
+                "parent_id": "str"
             },
             ...
         ],
+        "label_classes": [
+            {
+                "class_index": "int",
+                "label": {
+                    "id": "str",
+                    "name": "str",
+                    "type": "str", # 'GLOBAL', 'LOCAL'
+                    "scope": "str", # 'INSTANCE', 'SERIES', 'STUDY'
+                    "annotation_mode": "str", # For local annotation types
+                    "short_name": "str",
+                    "description": "str",
+                    "parent_id": "str"
+                    }
+            }
+            ...
+        ]
         "args": {
             "arg1": "str",
             "arg2": "str",

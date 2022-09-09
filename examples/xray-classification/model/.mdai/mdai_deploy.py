@@ -21,6 +21,7 @@ class MDAIModel:
         """
         input_files = data["files"]
         input_annotations = data["annotations"]
+        input_label_classes = data["label_classes"]
         input_args = data["args"]
 
         outputs = []
