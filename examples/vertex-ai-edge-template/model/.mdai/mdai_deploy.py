@@ -21,7 +21,7 @@ class MDAIModel:
                 continue
 
             # DICOM UID mapping
-            uids = file["content_uids"]
+            uids = file["dicom_tags"]
 
             # Load JPEG/PNG image
             image = BytesIO(file["content"]).getvalue()
