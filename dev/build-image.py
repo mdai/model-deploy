@@ -15,6 +15,7 @@ sys.path.insert(0, HELPER_DIR)
 
 hot_reload_values = {
     "{{PARENT_IMAGE}}": [],
+    "{{CONDA_ENV}}": [],
     "{{COPY}}": [
         "COPY main.sh /src/",
         'RUN ["chmod", "+x", "/src/main.sh"]',
@@ -115,13 +116,13 @@ if __name__ == "__main__":
 
         placeholder_values = hot_reload_values
 
-        helper.resolve_parent_image(
+        dockerfile_path = helper.resolve_parent_image(
             placeholder_values, config, helper.PARENT_IMAGE_DICT, mdai_folder
         )
         helper.add_env_variables(placeholder_values, config.get("env"))
         relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
         os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-        copies = copy_files(target_folder, config["base_image"], placeholder_values)
+        copies = copy_files(target_folder, dockerfile_path, placeholder_values)
 
         try:
             helper.build_image(client, docker_image, relative_mdai_folder)

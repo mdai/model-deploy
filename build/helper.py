@@ -10,11 +10,14 @@ BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 PLACEHOLDER_VALUES = {
     "{{PARENT_IMAGE}}": [],
+    "{{CONDA_ENV}}": [],
     "{{COPY}}": ["COPY lib /src/lib/"],
     "{{COMMAND_MDAI}}": ['CMD ["/bin/bash", "-c", "source activate mdai-env ; python server.py"]'],
     "{{COMMAND}}": ['CMD ["/bin/bash", "-c", "python server.py"]'],
     "{{ENV}}": [],
 }
+
+PYTHON_VERSION_DICT = {"py37": "3.7", "py38": "3.8", "py39": "3.9", "py310": "3.10"}
 
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
@@ -141,6 +144,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
             with open(os.path.join(mdai_folder, "Dockerfile")) as f:
                 parent_image = f.readlines()
             command = "".join(parent_image)
+            dockerfile_path = "custom"
         except IOError:
             print(
                 "Custom Dockerfile missing. Please upload Dockerfile in the .mdai folder.",
@@ -153,7 +157,15 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
             sys.exit()
         parent_image = image_dict["nvidia"].get(str(clara_version))
         command = " ".join(["FROM", parent_image])
+        dockerfile_path = "nvidia"
     else:
+        if base_image not in PYTHON_VERSION_DICT:
+            print(
+                f"Base image '{base_image}' is not supported. Please choose from py37, py38, py39 or py310",
+                file=sys.stderr,
+            )
+            sys.exit()
+
         if device_type == "cpu":
             parent_image = image_dict.get("cpu")
         elif device_type == "gpu" and cuda_version in image_dict.get("gpu"):
@@ -165,6 +177,12 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
             )
             sys.exit()
         command = " ".join(["FROM", parent_image])
+        dockerfile_path = "python"
+
+        # Create conda env based on python versipn specified in base image
+        placeholder_dict["{{CONDA_ENV}}"].append(
+            f"RUN conda create -n mdai-env python={PYTHON_VERSION_DICT[base_image]} pip"
+        )
     placeholder_dict["{{PARENT_IMAGE}}"].append(command)
 
     # Add opencv-python GUI libraries for CPU base image
@@ -172,6 +190,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
         placeholder_dict["{{PARENT_IMAGE}}"].append(
             "RUN apt-get update && apt-get install -y libgl1-mesa-glx"
         )
+    return dockerfile_path
 
 
 def create_docker_image(args):
@@ -189,11 +208,13 @@ def create_docker_image(args):
     if config_path is not None:
         config = process_config_file(config_path)
 
-    resolve_parent_image(PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT, mdai_folder)
+    dockerfile_path = resolve_parent_image(
+        PLACEHOLDER_VALUES, config, PARENT_IMAGE_DICT, mdai_folder
+    )
     add_env_variables(PLACEHOLDER_VALUES, config.get("env"))
     relative_mdai_folder = os.path.relpath(mdai_folder, target_folder)
     os.chdir(os.path.join(BASE_DIRECTORY, "mdai"))
-    copies = copy_files(target_folder, config["base_image"])
+    copies = copy_files(target_folder, dockerfile_path)
 
     try:
         build_image(client, docker_image, relative_mdai_folder)

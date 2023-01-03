@@ -1,11 +1,14 @@
 {{PARENT_IMAGE}}
 
+RUN apt-get install -y libgl1-mesa-glx
+
 WORKDIR /src
 ARG MDAI_PATH
 
 {{ENV}}
 
-RUN conda create -n mdai-env python=3.7 pip
+{{CONDA_ENV}}
+
 COPY requirements.txt /src/requirements.txt
 COPY lib/${MDAI_PATH}/requirements.txt /src/mdai-requirements.txt
 RUN /bin/bash -c "source activate mdai-env && \
