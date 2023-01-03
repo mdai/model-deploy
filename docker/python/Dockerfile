@@ -1,7 +1,5 @@
 {{PARENT_IMAGE}}
 
-RUN apt-get install -y libgl1-mesa-glx
-
 WORKDIR /src
 ARG MDAI_PATH
 
