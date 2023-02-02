@@ -29,6 +29,7 @@ logger.setLevel(logging.INFO)
 mdai_model = None
 mdai_model_ready = False
 mdai_model_lock = Lock()
+mdai_model_error = ""
 
 output_validator = OutputValidator()
 executor = ThreadPoolExecutor(max_workers=1)
@@ -135,6 +136,12 @@ async def inference(request: Request):
         raise HTTPException(status_code=400)
     body = await request.body()
 
+    if not mdai_model:
+        logger.exception(mdai_model_error)
+        text = f"Error initializing model: {mdai_model_error}"
+        headers = {"Content-Type": "text/plain"}
+        return Response(content=text, status_code=500, headers=headers)
+
     def _inference(body):
         data = msgpack.unpackb(body, raw=False)
 
@@ -192,7 +199,11 @@ if __name__ == "__main__":
 
     from mdai_deploy import MDAIModel
 
-    mdai_model = MDAIModel()
+    try:
+        mdai_model = MDAIModel()
+    except Exception:
+        mdai_model_error = traceback.format_exc()
+
     mdai_model_ready = True
 
     loop = asyncio.new_event_loop()
