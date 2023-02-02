@@ -105,7 +105,7 @@ async def inference(request: Request):
 
     [
         {
-            "type": "str", # 'NONE', 'ANNOTATION', 'IMAGE', 'DICOM', 'TEXT'
+            "type": "str", # 'NONE', 'ANNOTATION'
             "study_uid": "str",
             "series_uid": "str",
             "instance_uid": "str",
