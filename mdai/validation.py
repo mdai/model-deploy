@@ -23,6 +23,7 @@ class OutputValidator:
             "data": [dict, type(None)],
             "probability": [float, list, type(None)],
             "explanations": [list, type(None)],
+            "note": [str, type(None)],
         }
 
         self.data_types = {

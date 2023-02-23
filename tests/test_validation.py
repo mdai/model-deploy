@@ -17,6 +17,7 @@ class TestOutputValidator:
             "probability": None,
             "data": None,
             "explanations": [],
+            "note": None,
         }
 
     def test_missing(self):
@@ -36,6 +37,7 @@ class TestOutputValidator:
                 {"x": 35, "y": 45},
                 {"x": 44, "y": 55, "width": 20, "height": 30},
             ],
+            "note": ["test"]
         }
         output = dict(self.sample_output)
 
@@ -58,6 +60,7 @@ class TestOutputValidator:
             "probability": ["5"],
             "data": [[], 1, "50"],
             "explanations": [{}, 1, "1"],
+            "note": [[], 1, 0.5],
         }
         for key in invalid_values:
             for value in invalid_values[key]:

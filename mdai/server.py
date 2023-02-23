@@ -114,6 +114,7 @@ async def inference(request: Request):
             "class_index": "int",
             "data": {},
             "probability": "float" or "list[dict[str, float]]",
+            "note": "str",
             "explanations": [
                 {
                     "name": "str",
