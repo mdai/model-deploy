@@ -91,6 +91,13 @@ To profile memory usage of the container, the `dev/profile.py` script can be use
 dev/profile.py
 ```
 
+## Pinned Libraries and Known/Tracking Issues
+
+Do not upgrade the following libraries for now:
+
+- `watchdog@2.2.1` in [dev/build-image.py](dev/build-image.py#L114) (see [#949](https://github.com/gorakhargosh/watchdog/issues/949))
+- `protobuf@3.20.1` in [mdai/requirements.txt](mdai/requirements.txt) (latest protobuf versions break older TF models, see [#10051](https://github.com/protocolbuffers/protobuf/issues/10051))
+
 ---
 
 &copy; 2023 MD.ai, Inc.
