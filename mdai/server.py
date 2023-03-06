@@ -1,12 +1,11 @@
 import sys
 import os
 import logging
+import asyncio
+import traceback
 import msgpack
 from fastapi import FastAPI, HTTPException, Request, Response
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
 from uvicorn import Config, Server
-import traceback
 
 from validation import OutputValidator
 
@@ -30,9 +29,11 @@ mdai_model_ready = False
 mdai_model_error = ""
 
 output_validator = OutputValidator()
-executor = ThreadPoolExecutor(max_workers=1)
 
 app = FastAPI()
+
+# Ensure inference is run one at a time.
+lock = asyncio.Lock()
 
 
 @app.post("/inference")
@@ -128,39 +129,36 @@ async def inference(request: Request):
 
     The DICOM UIDs must be supplied based on the scope of the label attached to `class_index`.
     """
-    if not mdai_model:
-        logger.exception(mdai_model_error)
-        text = f"Error initializing model: {mdai_model_error}"
-        headers = {"Content-Type": "text/plain"}
-        return Response(content=text, status_code=500, headers=headers)
-
     if not request.headers["content-type"] == "application/msgpack":
         raise HTTPException(status_code=400)
 
-    def _inference(_body):
+    def _error_response(content: str):
+        headers = {"Content-Type": "text/plain"}
+        return Response(content, status_code=500, headers=headers)
+
+    if not mdai_model:
+        logger.exception(mdai_model_error)
+        return _error_response(f"Error initializing model: {mdai_model_error}")
+
+    async with lock:
         try:
-            data = msgpack.unpackb(_body, raw=False)
+            body = await request.body()
+            data = msgpack.unpackb(body, raw=False)
         except Exception as e:
             logger.exception(e)
-            text = "Error reading input data"
-            headers = {"Content-Type": "text/plain"}
-            return Response(content=text, status_code=500, headers=headers)
+            return _error_response("Error reading input data")
 
         try:
             results = mdai_model.predict(data)
         except Exception as e:
             logger.exception(e)
-            text = f"Error running model: {traceback.format_exc()}"
-            headers = {"Content-Type": "text/plain"}
-            return Response(content=text, status_code=500, headers=headers)
+            return _error_response(f"Error running model: {traceback.format_exc()}")
 
         try:
             output_validator.validate(results)
         except Exception as e:
             logger.exception(e)
-            text = f"Invalid data format returned by model: {e}"
-            headers = {"Content-Type": "text/plain"}
-            return Response(content=text, status_code=500, headers=headers)
+            return _error_response(f"Invalid data format returned by model: {e}")
 
         try:
             resp_content = msgpack.packb(results, use_bin_type=True)
@@ -168,14 +166,7 @@ async def inference(request: Request):
             return Response(content=resp_content, status_code=200, headers=headers)
         except Exception as e:
             logger.exception(e)
-            text = "Error writing output data"
-            headers = {"Content-Type": "text/plain"}
-            return Response(content=text, status_code=500, headers=headers)
-
-    loop = asyncio.get_event_loop()
-    body = await request.body()
-    resp = await loop.run_in_executor(executor, _inference, body)
-    return resp
+            return _error_response("Error writing output data")
 
 
 @app.get("/healthz")

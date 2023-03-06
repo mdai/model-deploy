@@ -16,9 +16,6 @@
   // Testing
   "python.testing.pytestEnabled": true,
 
-  // Use Python virtualenv
-  "python.pythonPath": ".venv/bin/python",
-
   // Python-specific settings
   "[python]": {
     "editor.tabSize": 4
