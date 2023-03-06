@@ -1,7 +1,6 @@
 import sys
 import os
 import logging
-from threading import Lock
 import msgpack
 from fastapi import FastAPI, HTTPException, Request, Response
 from concurrent.futures import ThreadPoolExecutor
@@ -28,7 +27,6 @@ logger.setLevel(logging.INFO)
 
 mdai_model = None
 mdai_model_ready = False
-mdai_model_lock = Lock()
 mdai_model_error = ""
 
 output_validator = OutputValidator()
@@ -130,32 +128,31 @@ async def inference(request: Request):
 
     The DICOM UIDs must be supplied based on the scope of the label attached to `class_index`.
     """
-
-    loop = asyncio.get_event_loop()
-
-    if not request.headers["content-type"] == "application/msgpack":
-        raise HTTPException(status_code=400)
-    body = await request.body()
-
     if not mdai_model:
         logger.exception(mdai_model_error)
         text = f"Error initializing model: {mdai_model_error}"
         headers = {"Content-Type": "text/plain"}
         return Response(content=text, status_code=500, headers=headers)
 
-    def _inference(body):
-        data = msgpack.unpackb(body, raw=False)
+    if not request.headers["content-type"] == "application/msgpack":
+        raise HTTPException(status_code=400)
+
+    def _inference(_body):
+        try:
+            data = msgpack.unpackb(_body, raw=False)
+        except Exception as e:
+            logger.exception(e)
+            text = "Error reading input data"
+            headers = {"Content-Type": "text/plain"}
+            return Response(content=text, status_code=500, headers=headers)
 
         try:
-            mdai_model_lock.acquire()
             results = mdai_model.predict(data)
         except Exception as e:
             logger.exception(e)
             text = f"Error running model: {traceback.format_exc()}"
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
-        finally:
-            mdai_model_lock.release()
 
         try:
             output_validator.validate(results)
@@ -165,12 +162,18 @@ async def inference(request: Request):
             headers = {"Content-Type": "text/plain"}
             return Response(content=text, status_code=500, headers=headers)
 
-        headers = {"Content-Type": "application/msgpack"}
-        resp = Response(
-            status_code=200, content=msgpack.packb(results, use_bin_type=True), headers=headers
-        )
-        return resp
+        try:
+            resp_content = msgpack.packb(results, use_bin_type=True)
+            headers = {"Content-Type": "application/msgpack"}
+            return Response(content=resp_content, status_code=200, headers=headers)
+        except Exception as e:
+            logger.exception(e)
+            text = "Error writing output data"
+            headers = {"Content-Type": "text/plain"}
+            return Response(content=text, status_code=500, headers=headers)
 
+    loop = asyncio.get_event_loop()
+    body = await request.body()
     resp = await loop.run_in_executor(executor, _inference, body)
     return resp
 
@@ -197,7 +200,6 @@ def version():
 
 
 if __name__ == "__main__":
-
     from mdai_deploy import MDAIModel
 
     try:
