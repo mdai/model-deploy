@@ -32,9 +32,6 @@ output_validator = OutputValidator()
 
 app = FastAPI()
 
-# Ensure inference is run one at a time.
-lock = asyncio.Lock()
-
 
 @app.post("/inference")
 async def inference(request: Request):
@@ -140,7 +137,7 @@ async def inference(request: Request):
         logger.exception(mdai_model_error)
         return _error_response(f"Error initializing model: {mdai_model_error}")
 
-    async with lock:
+    async with app.state.lock:
         try:
             body = await request.body()
             data = msgpack.unpackb(body, raw=False)
@@ -201,6 +198,9 @@ if __name__ == "__main__":
     mdai_model_ready = True
 
     loop = asyncio.new_event_loop()
+
+    # Ensure inference is run one at a time
+    app.state.lock = asyncio.Lock(loop=loop)
 
     config = Config(app=app, host="0.0.0.0", port=6324, workers=1)
     server = Server(config)
