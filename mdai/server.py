@@ -198,9 +198,10 @@ if __name__ == "__main__":
     mdai_model_ready = True
 
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     # Ensure inference is run one at a time
-    app.state.lock = asyncio.Lock(loop=loop)
+    app.state.lock = asyncio.Lock()
 
     config = Config(app=app, host="0.0.0.0", port=6324, workers=1)
     server = Server(config)
