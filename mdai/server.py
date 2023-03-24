@@ -188,9 +188,9 @@ def version():
 
 
 if __name__ == "__main__":
-    from mdai_deploy import MDAIModel
-
     try:
+        from mdai_deploy import MDAIModel
+
         mdai_model = MDAIModel()
     except Exception:
         mdai_model_error = traceback.format_exc()
