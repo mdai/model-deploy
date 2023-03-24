@@ -8,7 +8,7 @@ class OutputValidator:
             "NONE": ["study_uid"],
             "ANNOTATION": ["study_uid", "class_index"],
             "IMAGE": ["study_uid"],
-            "DICOM": ["study_uid"],
+            "DICOM": ["study_uid", "class_index"],
             "TEXT": ["study_uid"],
         }
 
@@ -24,6 +24,7 @@ class OutputValidator:
             "probability": [float, list, type(None)],
             "explanations": [list, type(None)],
             "note": [str, type(None)],
+            "images": [list, type(None)],
         }
 
         self.data_types = {
