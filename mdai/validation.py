@@ -7,8 +7,8 @@ class OutputValidator:
         self.required_keys = {
             "NONE": ["study_uid"],
             "ANNOTATION": ["study_uid", "class_index"],
-            "IMAGE": ["study_uid"],
-            "DICOM": ["study_uid", "class_index"],
+            "IMAGE": ["study_uid", "class_index", "images"],
+            "DICOM": ["study_uid", "class_index", "images"],
             "TEXT": ["study_uid"],
         }
 
@@ -56,7 +56,7 @@ class OutputValidator:
             raise InvalidFormatException("Invalid output type. Got {}".format(output.get("type")))
         for key in self.required_keys[output["type"]]:
             if key not in output:
-                raise InvalidFormatException("Key {} not found in model output".format(key))
+                raise InvalidFormatException("Key '{}' not found in model output".format(key))
 
     def validate_types(self, output):
         for key in output.keys():
