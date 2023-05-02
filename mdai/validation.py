@@ -43,6 +43,11 @@ class OutputValidator:
             "mask": self.validate_data_with_mask,
         }
 
+        self. note_dict_types = {
+            "input": str, 
+            "output": str
+        }
+
     def validate(self, outputs):
         if type(outputs) != list:
             raise InvalidFormatException("Expected list, got {}".format(type(outputs)))
@@ -50,6 +55,7 @@ class OutputValidator:
             self.validate_keys(output)
             self.validate_types(output)
             self.validate_data(output)
+            self.validate_note(output)
 
     def validate_keys(self, output):
         if output.get("type") not in self.required_keys.keys():
@@ -140,3 +146,19 @@ class OutputValidator:
             raise InvalidFormatException(
                 "Invalid mask data type. Got {} Expected {}".format(type(mask_value), MASK_TYPE)
             )
+
+    def validate_note(self, output):
+        if output.get("note") is None:
+            return
+        note = output.get("note")
+        if isinstance(note, dict):
+            for key in note.keys():
+                if key not in self.note_dict_types.keys():
+                    raise InvalidFormatException(
+                        "Invalid key for output note dict. Got '{}' Expected {}".format(key, self.note_dict_types.keys())
+                    )
+                value = note.get(key)
+                if not isinstance(value, self.note_dict_types[key]):
+                    raise InvalidFormatException(
+                        "Invalid value type for note dict key '{}'. Got '{}' Expected {}".format(key, type(value), self.note_dict_types[key])
+                    )
