@@ -4,5 +4,5 @@ flake8
 msgpack
 pydicom
 pytest
-requests
+requests<2.29.0
 pyyaml
