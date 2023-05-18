@@ -111,7 +111,7 @@ if __name__ == "__main__":
             )
         else:
             hot_reload_values["{{COPY}}"].append(
-                'RUN /bin/bash -c "source activate mdai-env && pip install watchdog==2.2.1 argh pyyaml"',
+                'RUN /bin/bash -c "source activate mdai-env && pip install watchdog argh pyyaml"',
             )
 
         placeholder_values = hot_reload_values
