@@ -95,7 +95,6 @@ dev/profile.py
 
 Do not upgrade the following libraries for now:
 
-- `watchdog@2.2.1` in [dev/build-image.py](dev/build-image.py#L114) (see [#949](https://github.com/gorakhargosh/watchdog/issues/949))
 - `protobuf@3.20.1` in [mdai/requirements.txt](mdai/requirements.txt) (latest protobuf versions break older TF models, see [#10051](https://github.com/protocolbuffers/protobuf/issues/10051))
 - `requests<2.29.0` in [requirements.txt](requirements.txt) (latest urllib3 versions breaks docker build, see [#3113](https://github.com/docker/docker-py/issues/3113))
 
