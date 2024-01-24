@@ -187,9 +187,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
 
     # Add opencv-python GUI libraries for CPU base image
     if device_type == "cpu":
-        placeholder_dict["{{PARENT_IMAGE}}"].append(
-            "RUN apt-get update && apt-get install -y libgl1-mesa-glx"
-        )
+        placeholder_dict["{{PARENT_IMAGE}}"].append("RUN apt-get install -y libgl1-mesa-glx")
     return dockerfile_path
 
 
