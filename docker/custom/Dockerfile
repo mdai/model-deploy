@@ -5,7 +5,7 @@ ARG MDAI_PATH
 
 {{ENV}}
 
-COPY requirements.txt /src/requirements.txt
+COPY requirements.txt lib/${MDAI_PATH}/*.whl /src/
 COPY lib/${MDAI_PATH}/requirements.txt /src/mdai-requirements.txt
 
 RUN /bin/bash -c "pip install -r requirements.txt && \
