@@ -25,6 +25,7 @@ class OutputValidator:
             "explanations": [list, type(None)],
             "note": [str, dict, type(None)],
             "images": [list, type(None)],
+            "image_output_tags": [dict, type(None)],
         }
 
         self.data_types = {
@@ -43,19 +44,23 @@ class OutputValidator:
             "mask": self.validate_data_with_mask,
         }
 
-        self. note_dict_types = {
-            "input": str, 
-            "output": str
+        self.note_dict_types = {"input": str, "output": str}
+
+        self.image_output_tags_types = {
+            "PatientID": str,
+            "StudyInstanceUID": str,
+            "SeriesInstanceUID": str,
         }
 
     def validate(self, outputs):
-        if type(outputs) != list:
+        if not isinstance(outputs, list):
             raise InvalidFormatException("Expected list, got {}".format(type(outputs)))
         for output in outputs:
             self.validate_keys(output)
             self.validate_types(output)
             self.validate_data(output)
             self.validate_note(output)
+            self.validate_image_output_tags(output)
 
     def validate_keys(self, output):
         if output.get("type") not in self.required_keys.keys():
@@ -108,7 +113,7 @@ class OutputValidator:
         if len(vertices) == 0:
             return
 
-        if type(vertices[0]) != list:
+        if not isinstance(vertices[0], list):
             raise InvalidFormatException("Vertices needs to be a 2D array")
 
         if len(vertices[0]) != VERTEX_DIMENSIONS:
@@ -119,7 +124,7 @@ class OutputValidator:
             )
 
         vertex = vertices[0]
-        if not type(vertex[0]) in VERTEX_TYPE or not type(vertex[1]) in VERTEX_TYPE:
+        if type(vertex[0]) not in VERTEX_TYPE or type(vertex[1]) not in VERTEX_TYPE:
             raise InvalidFormatException(
                 "Invalid vertex data type. Got {} Expected {}".format(
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
@@ -133,7 +138,7 @@ class OutputValidator:
         if len(mask) == 0:
             return
 
-        if type(mask[0]) != list:
+        if not isinstance(mask[0], list):
             raise InvalidFormatException(
                 "Mask needs to be returned as a 2D python list.\nNumpy arrays can be converted to lists using the .tolist() method"
             )
@@ -142,23 +147,48 @@ class OutputValidator:
             return
 
         mask_value = mask[0][0]
-        if not type(mask_value) in MASK_TYPE:
+        if type(mask_value) not in MASK_TYPE:
             raise InvalidFormatException(
                 "Invalid mask data type. Got {} Expected {}".format(type(mask_value), MASK_TYPE)
             )
 
     def validate_note(self, output):
-        if output.get("note") is None:
-            return
         note = output.get("note")
+        if not note:
+            return
+
         if isinstance(note, dict):
             for key in note.keys():
                 if key not in self.note_dict_types.keys():
                     raise InvalidFormatException(
-                        "Invalid key for output note dict. Got '{}' Expected {}".format(key, self.note_dict_types.keys())
+                        "Invalid key for output note dict. Got '{}' Expected {}".format(
+                            key, list(self.note_dict_types.keys())
+                        )
                     )
                 value = note.get(key)
                 if not isinstance(value, self.note_dict_types[key]):
                     raise InvalidFormatException(
-                        "Invalid value type for note dict key '{}'. Got '{}' Expected {}".format(key, type(value), self.note_dict_types[key])
+                        "Invalid value type for note dict key '{}'. Got '{}' Expected {}".format(
+                            key, type(value), self.note_dict_types[key]
+                        )
                     )
+
+    def validate_image_output_tags(self, output):
+        image_output_tags = output.get("image_output_tags")
+        if not image_output_tags:
+            return
+
+        for key in image_output_tags.keys():
+            if key not in self.image_output_tags_types:
+                raise InvalidFormatException(
+                    "Invalid key for image_output_tags. Got '{}', expected values include {}".format(
+                        key, list(self.image_output_tags_types.keys())
+                    )
+                )
+
+            if not isinstance(image_output_tags[key], self.image_output_tags_types[key]):
+                raise InvalidFormatException(
+                    "Invalid type for image_output_tags[{}]. Got '{}' expected {}".format(
+                        key, type(image_output_tags[key]), self.image_output_tags_types[key]
+                    )
+                )
