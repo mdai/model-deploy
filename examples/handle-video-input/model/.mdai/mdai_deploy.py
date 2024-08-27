@@ -13,8 +13,8 @@ class MDAIModel:
         Process input video files and generate annotations.
 
         This method demonstrates how to handle video input in an MD.ai model deployment.
-        It processes each frame of the input video and generates a simple annotation:
-        a rectangle that moves from left to right across the video frames.
+        It processes each frame of the input video and generates a simple model output:
+        a bbox that moves from left to right across the video frames.
 
         Args:
             data (dict): Input data containing files, annotations, label classes, and arguments.
@@ -26,7 +26,7 @@ class MDAIModel:
         https://github.com/mdai/model-deploy/blob/master/mdai/server.py
         """
         input_files = data["files"]
-        output = []
+        outputs = []
 
         for input_file in input_files:
             dicom_tags = input_file.get("dicom_tags", {})
@@ -55,23 +55,23 @@ class MDAIModel:
                 if not ret:
                     break
 
-                annotation = self._create_annotation(
+                model_output = self._create_model_output(
                     dicom_tags, frame_number, frame_count, frame_width, frame_height
                 )
-                output.append(annotation)
+                outputs.append(model_output)
 
                 print(f"Processing frame {frame_number}")
 
             cap.release()
             os.unlink(temp_video_path)
 
-        return output
+        return outputs
 
     @staticmethod
-    def _create_annotation(
+    def _create_model_output(
         dicom_tags, frame_number, frame_count, frame_width, frame_height
     ):
-        """Create an annotation for a single video frame."""
+        """Create a model output for a single video frame."""
         return {
             "study_uid": dicom_tags.get("StudyInstanceUID"),
             "series_uid": dicom_tags.get("SeriesInstanceUID"),
