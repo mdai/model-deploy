@@ -18,6 +18,7 @@ class OutputValidator:
             "study_uid": str,
             "series_uid": [str, type(None)],
             "instance_uid": [str, type(None)],
+            "video_frame_number": [int, type(None)],
             "frame_number": [int, type(None)],
             "class_index": int,
             "data": [dict, type(None)],
@@ -33,6 +34,10 @@ class OutputValidator:
             "box": {"x": int, "y": int, "width": int, "height": int},
             "vertices": {"vertices": list},
             "mask": {"mask": list},
+            "video_series_interval": {
+                "start_frame_number": int,
+                "end_frame_number": int,
+            },
         }
 
         # Dict for mapping function to specific data types. Used for additional checks
@@ -42,6 +47,7 @@ class OutputValidator:
             "box": None,
             "vertices": self.validate_data_with_vertices,
             "mask": self.validate_data_with_mask,
+            "video_series_interval": None,
         }
 
         self.note_dict_types = {"input": str, "output": str}
@@ -64,15 +70,21 @@ class OutputValidator:
 
     def validate_keys(self, output):
         if output.get("type") not in self.required_keys.keys():
-            raise InvalidFormatException("Invalid output type. Got {}".format(output.get("type")))
+            raise InvalidFormatException(
+                "Invalid output type. Got {}".format(output.get("type"))
+            )
         for key in self.required_keys[output["type"]]:
             if key not in output:
-                raise InvalidFormatException("Key '{}' not found in model output".format(key))
+                raise InvalidFormatException(
+                    "Key '{}' not found in model output".format(key)
+                )
 
     def validate_types(self, output):
         for key in output.keys():
             expected_types = (
-                self.types[key] if isinstance(self.types[key], list) else [self.types[key]]
+                self.types[key]
+                if isinstance(self.types[key], list)
+                else [self.types[key]]
             )
             if type(output.get(key)) not in expected_types:
                 raise InvalidFormatException(
@@ -98,7 +110,9 @@ class OutputValidator:
             if not isinstance(output["data"][key], self.data_types[data_format][key]):
                 raise InvalidFormatException(
                     "Invalid type for key '{}' in data. Expected {}, got {}".format(
-                        key, self.data_types[data_format][key], type(output["data"][key])
+                        key,
+                        self.data_types[data_format][key],
+                        type(output["data"][key]),
                     )
                 )
 
@@ -149,7 +163,9 @@ class OutputValidator:
         mask_value = mask[0][0]
         if type(mask_value) not in MASK_TYPE:
             raise InvalidFormatException(
-                "Invalid mask data type. Got {} Expected {}".format(type(mask_value), MASK_TYPE)
+                "Invalid mask data type. Got {} Expected {}".format(
+                    type(mask_value), MASK_TYPE
+                )
             )
 
     def validate_note(self, output):
@@ -186,9 +202,13 @@ class OutputValidator:
                     )
                 )
 
-            if not isinstance(image_output_tags[key], self.image_output_tags_types[key]):
+            if not isinstance(
+                image_output_tags[key], self.image_output_tags_types[key]
+            ):
                 raise InvalidFormatException(
                     "Invalid type for image_output_tags[{}]. Got '{}' expected {}".format(
-                        key, type(image_output_tags[key]), self.image_output_tags_types[key]
+                        key,
+                        type(image_output_tags[key]),
+                        self.image_output_tags_types[key],
                     )
                 )

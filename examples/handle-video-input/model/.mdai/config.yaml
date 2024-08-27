@@ -1,0 +1,2 @@
+base_image: py310
+device_type: cpu
