@@ -5,7 +5,6 @@ import docker
 from shutil import copytree
 import sys
 
-
 BASE_DIRECTORY = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 PLACEHOLDER_VALUES = {
@@ -22,6 +21,11 @@ PYTHON_VERSION_DICT = {"py37": "3.7", "py38": "3.8", "py39": "3.9", "py310": "3.
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
     "gpu": {
+        "12.4": "gcr.io/deeplearning-platform-release/base-cu124",
+        "12.3": "gcr.io/deeplearning-platform-release/base-cu123",
+        "12.2": "gcr.io/deeplearning-platform-release/base-cu122",
+        "12.1": "gcr.io/deeplearning-platform-release/base-cu121",
+        "11.8": "gcr.io/deeplearning-platform-release/base-cu118",
         "11.3": "gcr.io/deeplearning-platform-release/base-cu113",
         "11.0": "gcr.io/deeplearning-platform-release/base-cu110",
         "10.1": "gcr.io/deeplearning-platform-release/base-cu101",
