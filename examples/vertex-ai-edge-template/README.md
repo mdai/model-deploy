@@ -8,6 +8,6 @@ AutoML Edge models trained using Google Cloud's Vertex AI offering can now be ea
 - For binary and multiclass models, you simply need to replace the `saved_model.pb` file in this sample zip file with your own exported model file.
 - Optionally, in the `.mdai/config.yaml` file change the `device_type` to `gpu` if required to run inference on a GPU.
 - For multilabel or more complex models, make changes in the `.mdai/mdai-deploy.py` file as required depending on your model definition.
-- Finally, follow our [documentation](https://docs.md.ai/models/deploy-models/) for steps to deploy models into a project.
+- Finally, follow our [documentation](https://docs.md.ai/annotator/models/deploy-models/) for steps to deploy models into a project.
 
-More details can be found in our [documentation](https://docs.md.ai/models/vertex-ai-integration).
+More details can be found in our [documentation](https://docs.md.ai/annotator/models/vertex-ai/).

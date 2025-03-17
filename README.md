@@ -2,10 +2,9 @@
 
 ## Documentation
 
-- [MD.ai Interface Code](https://docs.md.ai/models/interface-code/)
-- [Deploying Models](https://docs.md.ai/models/deploy-models/)
-- [Inference](https://docs.md.ai/models/inference/)
-- ...more to come, including training and validation
+- [MD.ai Interface Code](https://docs.md.ai/annotator/models/interface-code/)
+- [Deploying Models](https://docs.md.ai/annotator/models/deploy-models/)
+- [Inference](https://docs.md.ai/annotator/models/inference/)
 
 ## Examples
 
