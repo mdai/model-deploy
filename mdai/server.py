@@ -199,8 +199,11 @@ async def inference(request: Request):
     are and can batch the work across them; otherwise `predict` is called once per group and sees
     the flat list it expects.
 
-    If multi-frame instances are supported, the model scope must be 'SERIES' or 'STUDY', because
-    internally we treat these as DICOM series.
+    A multi-frame instance is stored as a series of one virtual instance per frame, but it is sent
+    as the single DICOM file it came from, once, whatever the model scope. A model that supports
+    multi-frame reads the frames from that file itself and returns a zero-based `frame_number` on
+    each output; the platform maps those back to the per-frame instances. An output that omits
+    `frame_number` for a multi-frame instance does not identify a frame and will not map.
 
     The additional `args` dict supply values that may be used in a given run.
 
