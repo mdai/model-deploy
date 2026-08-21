@@ -1,10 +1,21 @@
-fastapi==0.92.0
-msgpack==1.0.4
-uvicorn==0.20.0
-numpy
-pydicom==2.3.1
-pylibjpeg==1.4.0
-pylibjpeg-libjpeg==1.3.4
-pylibjpeg-openjpeg==1.3.2
-pylibjpeg-rle==1.3.0
-protobuf==3.20.1
+# Installed into every model image, after the model's own dependencies. Ranges rather than exact
+# pins because this file has to resolve across the Python versions the base images offer, and
+# because a model's own pins have to be able to win: pixel-deid, for example, runs an mmocr stack
+# that requires numpy < 2, and pip leaves an already-satisfied range alone.
+#
+# Upper bounds are deliberate. Every one of these had a major release that breaks callers -- numpy
+# 2, pydicom 3 (pixel_data_handlers moved to pixels), protobuf 4/5 -- and this file used to leave
+# them open, so a rebuild years later silently picked up an incompatible major.
+#
+# Versions track apps/dicom-worker in the annotator-platform repo, which reads and writes the same
+# DICOM and msgpack payloads; keep the two in step when either moves.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+msgpack>=1.1,<2
+numpy>=1.24,<3
+pydicom>=2.4,<4
+pylibjpeg>=1.4,<3
+pylibjpeg-libjpeg>=1.3,<3
+pylibjpeg-openjpeg>=1.3,<3
+pylibjpeg-rle>=1.3,<3
+protobuf>=3.20,<8

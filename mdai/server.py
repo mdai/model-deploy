@@ -10,11 +10,17 @@ from uvicorn import Config, Server
 from validation import OutputValidator
 
 # To handle compressed DICOM image data
-import pylibjpeg
+import pylibjpeg  # noqa: F401
 
 # Used for model invalidation. If the minimum version required is increased beyond this value, then
 # the model built using this version will return an error. Version should be in semver format.
-MDAI_DEPLOY_API_VERSION = "0.3"
+MDAI_DEPLOY_API_VERSION = "0.4"
+
+# Base directory for files pushed ahead of an inference request by /load-files. Input files arrive
+# with a relative content_path and are made absolute against this before the model sees them. The
+# working directory is owned by root while the container runs as an unprivileged user, so this has
+# to point somewhere writable.
+DATA_PATH = os.environ.get("MDAI_DATA_PATH", "/tmp/mdai-data")
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -33,6 +39,102 @@ output_validator = OutputValidator()
 app = FastAPI()
 
 
+def _error_response(content: str):
+    headers = {"Content-Type": "text/plain"}
+    return Response(content, status_code=500, headers=headers)
+
+
+def _resolve_content_path(content_path):
+    """
+    Absolute on-disk path for a model input file, rejecting anything that escapes DATA_PATH.
+    """
+    path = os.path.normpath(os.path.join(DATA_PATH, str(content_path).lstrip("/")))
+    if not path.startswith(os.path.join(DATA_PATH, "")):
+        raise ValueError(f"Invalid content path: {content_path}")
+    return path
+
+
+def _write_files(files):
+    """
+    Writes files pushed by /load-files to disk, to be read during a later inference request.
+    """
+    for file in files:
+        path = _resolve_content_path(file["content_path"])
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(file["content"])
+
+
+def _resolve_input_paths(files):
+    """
+    Rewrites each input file's content_path to its absolute on-disk location, in place. Handles both
+    a flat file list and a list of file groups.
+    """
+    for file in files:
+        if isinstance(file, list):
+            _resolve_input_paths(file)
+        elif file.get("content_path"):
+            file["content_path"] = _resolve_content_path(file["content_path"])
+
+
+def _is_grouped(files):
+    """
+    True if `files` is a list of file groups rather than a flat list of files.
+    """
+    return bool(files) and isinstance(files[0], list)
+
+
+def _predict(data):
+    """
+    Runs the model over an inference request's files.
+
+    As of API version 0.4 `files` may be a list of file groups -- one group per resource in the
+    model task's batch -- so that a single request covers a whole batch instead of one resource. A
+    model that defines `predict_batch` receives the groups as they are, and can batch across them.
+    Every other model is called once per group and keeps the flat-list contract it was written to.
+    """
+    files = data.get("files") or []
+    if not _is_grouped(files):
+        return mdai_model.predict(data)
+
+    if hasattr(mdai_model, "predict_batch"):
+        return mdai_model.predict_batch(data)
+
+    results = []
+    for group in files:
+        results.extend(mdai_model.predict({**data, "files": group}))
+    return results
+
+
+@app.post("/load-files")
+async def load_files(request: Request):
+    """
+    Route for loading input files onto the model container's disk ahead of an inference request.
+
+    The POST body is a msgpack-serialized list of {"content": bytes, "content_path": str}. The
+    inference request that follows refers to the same content_path with a null `content`, which
+    keeps a large batch's pixel data out of the inference request body.
+    """
+    if not request.headers["content-type"] == "application/msgpack":
+        raise HTTPException(status_code=400)
+
+    try:
+        body = await request.body()
+        files = await asyncio.to_thread(msgpack.unpackb, body, raw=False)
+        del body
+    except Exception as e:
+        logger.exception(e)
+        return _error_response("Error reading input data")
+
+    try:
+        await asyncio.to_thread(_write_files, files)
+    except Exception as e:
+        logger.exception(e)
+        return _error_response(f"Error loading files: {e}")
+
+    return Response(status_code=200, content="")
+
+
 @app.post("/inference")
 async def inference(request: Request):
     """
@@ -41,10 +143,12 @@ async def inference(request: Request):
     The POST body is msgpack-serialized binary data with the follow schema:
 
     {
+        "input_data_source": "str", # 'MEMORY' or 'DISK'
         "files": [
             {
-                "content": "bytes",
-                "content_type": "str", # MIME type, e.g. 'application/dicom'
+                "content": "bytes",       # null when input_data_source is not 'MEMORY'
+                "content_path": "str",     # set instead of `content`, see /load-files
+                "content_type": "str",     # MIME type, e.g. 'application/dicom'
             },
             ...
         ],
@@ -89,6 +193,12 @@ async def inference(request: Request):
     - 'SERIES' model scope: `files` will contain a list of all instances in a series
     - 'STUDY' model scope: `files` will contain a list of all instances in a study
 
+    As of API version 0.4, when the model version sets a batch size above 1, `files` is a list of
+    such lists -- one per resource in the batch -- so a single request covers the whole batch. A
+    model that defines `predict_batch(data)` alongside `predict(data)` is handed the groups as they
+    are and can batch the work across them; otherwise `predict` is called once per group and sees
+    the flat list it expects.
+
     If multi-frame instances are supported, the model scope must be 'SERIES' or 'STUDY', because
     internally we treat these as DICOM series.
 
@@ -129,41 +239,45 @@ async def inference(request: Request):
     if not request.headers["content-type"] == "application/msgpack":
         raise HTTPException(status_code=400)
 
-    def _error_response(content: str):
-        headers = {"Content-Type": "text/plain"}
-        return Response(content, status_code=500, headers=headers)
-
     if not mdai_model:
         logger.exception(mdai_model_error)
         return _error_response(f"Error initializing model: {mdai_model_error}")
 
+    # Reading and unpacking the request body happens outside the lock, so the next request's upload
+    # overlaps with the inference already running rather than queueing behind it.
+    try:
+        body = await request.body()
+        data = await asyncio.to_thread(msgpack.unpackb, body, raw=False)
+        del body
+        _resolve_input_paths(data.get("files") or [])
+    except Exception as e:
+        logger.exception(e)
+        return _error_response("Error reading input data")
+
+    # Inference runs one at a time -- there is a single model and, usually, a single GPU -- but it
+    # runs in a worker thread. Calling into the model directly from the event loop stalls every
+    # other route for the length of the inference, including the readiness probe, which drops the
+    # pod out of its service's endpoints for as long as it is doing useful work.
     async with app.state.lock:
         try:
-            body = await request.body()
-            data = msgpack.unpackb(body, raw=False)
-        except Exception as e:
-            logger.exception(e)
-            return _error_response("Error reading input data")
-
-        try:
-            results = mdai_model.predict(data)
+            results = await asyncio.to_thread(_predict, data)
         except Exception as e:
             logger.exception(e)
             return _error_response(f"Error running model: {traceback.format_exc()}")
 
-        try:
-            output_validator.validate(results)
-        except Exception as e:
-            logger.exception(e)
-            return _error_response(f"Invalid data format returned by model: {e}")
+    try:
+        await asyncio.to_thread(output_validator.validate, results)
+    except Exception as e:
+        logger.exception(e)
+        return _error_response(f"Invalid data format returned by model: {e}")
 
-        try:
-            resp_content = msgpack.packb(results, use_bin_type=True)
-            headers = {"Content-Type": "application/msgpack"}
-            return Response(content=resp_content, status_code=200, headers=headers)
-        except Exception as e:
-            logger.exception(e)
-            return _error_response("Error writing output data")
+    try:
+        resp_content = await asyncio.to_thread(msgpack.packb, results, use_bin_type=True)
+        headers = {"Content-Type": "application/msgpack"}
+        return Response(content=resp_content, status_code=200, headers=headers)
+    except Exception as e:
+        logger.exception(e)
+        return _error_response("Error writing output data")
 
 
 @app.get("/healthz")
