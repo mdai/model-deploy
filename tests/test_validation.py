@@ -4,7 +4,7 @@ import pytest
 
 
 class TestOutputValidator:
-    def setup(self):
+    def setup_method(self):
         self.output_validator = OutputValidator()
 
         self.sample_output = {
@@ -37,7 +37,7 @@ class TestOutputValidator:
                 {"x": 35, "y": 45},
                 {"x": 44, "y": 55, "width": 20, "height": 30},
             ],
-            "note": ["test"]
+            "note": ["test"],
         }
         output = dict(self.sample_output)
 
@@ -75,10 +75,15 @@ class TestOutputValidator:
             {"vertex": [[1, 2], [3, 4]]},
             {"vetices": [1, 2, 3, 4]},
             {"vertices": [[1, 2, 3], [4, 5]]},
-            {"vertices": [[0.1, 0.2], [0.3, 0.4]]},
             {"x": 50, "y": 50, "z": 50},
             {"x": 0.1, "y": 0.5},
             {"x": 50, "y": 50, "width": 50.5, "height": 50.5},
+        ]
+
+        # Vertices are allowed to be floats, unlike point coordinates.
+        valid_data_fields = [
+            {"vertices": [[1, 2], [3, 4]]},
+            {"vertices": [[0.1, 0.2], [0.3, 0.4]]},
         ]
 
         output = dict(self.sample_output)
@@ -89,4 +94,10 @@ class TestOutputValidator:
             output[key] = data_field
             with pytest.raises(InvalidFormatException):
                 self.output_validator.validate([output])
+            output[key] = prev_value
+
+        for data_field in valid_data_fields:
+            prev_value = output[key]
+            output[key] = data_field
+            self.output_validator.validate([output])
             output[key] = prev_value
