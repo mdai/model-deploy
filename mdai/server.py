@@ -2,6 +2,8 @@ import sys
 import os
 import logging
 import asyncio
+import shutil
+import threading
 import traceback
 import msgpack
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -21,6 +23,11 @@ MDAI_DEPLOY_API_VERSION = "0.4"
 # working directory is owned by root while the container runs as an unprivileged user, so this has
 # to point somewhere writable.
 DATA_PATH = os.environ.get("MDAI_DATA_PATH", "/tmp/mdai-data")
+
+# How often the server checks whether the client is still waiting for an inference it is running.
+# A request that is abandoned -- the caller timed out and moved on -- otherwise runs to completion
+# against a socket nobody will read, holding the GPU for work whose result is discarded.
+DISCONNECT_POLL_SECONDS = 5
 
 LIB_PATH = os.path.join(os.getcwd(), "lib")
 sys.path.insert(0, LIB_PATH)
@@ -84,9 +91,88 @@ def _is_grouped(files):
     return bool(files) and isinstance(files[0], list)
 
 
-def _predict(data):
+def _input_file_paths(files):
+    """
+    Every on-disk path referenced by an inference request's files, flat list or grouped.
+    """
+    paths = []
+    for file in files:
+        if isinstance(file, list):
+            paths.extend(_input_file_paths(file))
+        elif file.get("content_path"):
+            paths.append(file["content_path"])
+    return paths
+
+
+def _remove_input_files(paths):
+    """
+    Deletes the input files an inference request consumed, and any directories left empty.
+
+    Files arrive through /load-files and are read once, by the request that follows. Nothing else
+    removes them, so without this a pod accumulates every input it has ever been sent until the
+    node runs out of disk -- which evicts unrelated pods on the same node, not just this one.
+    """
+    directories = set()
+    for path in paths:
+        try:
+            os.remove(path)
+            directories.add(os.path.dirname(path))
+        except FileNotFoundError:
+            continue
+        except OSError as e:
+            logger.warning(f"Could not remove input file {path}: {e}")
+
+    # Walk upwards from the deepest directories, so a study directory is considered after the
+    # series directories under it have gone.
+    for directory in sorted(directories, key=len, reverse=True):
+        while directory.startswith(os.path.join(DATA_PATH, "")):
+            try:
+                os.rmdir(directory)
+            except OSError:
+                # Not empty, or gone already: nothing above it can be empty either.
+                break
+            directory = os.path.dirname(directory)
+
+
+def _clear_data_path():
+    """
+    Empties the input file directory. Called at startup so a restarted pod does not inherit the
+    files of whatever ran before it -- on a restart-in-place the volume survives the process.
+    """
+    try:
+        shutil.rmtree(DATA_PATH, ignore_errors=True)
+        os.makedirs(DATA_PATH, exist_ok=True)
+    except OSError as e:
+        logger.warning(f"Could not clear {DATA_PATH}: {e}")
+
+
+async def _watch_for_disconnect(request, cancelled):
+    """
+    Sets `cancelled` if the client goes away while the model is running.
+
+    The model is handed this event and may consult it to stop early; one that ignores it behaves
+    exactly as before. Nothing is force-killed -- the inference is on a worker thread holding the
+    GPU, and abandoning it there without unwinding would let the next request start against a
+    device that is still busy.
+    """
+    while not cancelled.is_set():
+        try:
+            if await request.is_disconnected():
+                cancelled.set()
+                return
+        except Exception:  # noqa: BLE001 - a broken receive channel means the client is gone
+            cancelled.set()
+            return
+        await asyncio.sleep(DISCONNECT_POLL_SECONDS)
+
+
+def _predict(data, cancelled=None):
     """
     Runs the model over an inference request's files.
+
+    `cancelled` is a threading.Event set when the client stops waiting. It is published on the
+    model as `mdai_cancelled` so a long-running model can check it between units of work and
+    return early; a model that does not look at it is unaffected.
 
     As of API version 0.4 `files` may be a list of file groups -- one group per resource in the
     model task's batch -- so that a single request covers a whole batch instead of one resource. A
@@ -94,16 +180,30 @@ def _predict(data):
     Every other model is called once per group and keeps the flat-list contract it was written to.
     """
     files = data.get("files") or []
-    if not _is_grouped(files):
-        return mdai_model.predict(data)
+    try:
+        mdai_model.mdai_cancelled = cancelled
+    except AttributeError:
+        # A model that does not accept the attribute (__slots__, say) cannot be cancelled early.
+        logger.warning("Model does not accept `mdai_cancelled`; it will run to completion.")
+        cancelled = None
+    try:
+        if not _is_grouped(files):
+            return mdai_model.predict(data)
 
-    if hasattr(mdai_model, "predict_batch"):
-        return mdai_model.predict_batch(data)
+        if hasattr(mdai_model, "predict_batch"):
+            return mdai_model.predict_batch(data)
 
-    results = []
-    for group in files:
-        results.extend(mdai_model.predict({**data, "files": group}))
-    return results
+        results = []
+        for group in files:
+            if cancelled is not None and cancelled.is_set():
+                break
+            results.extend(mdai_model.predict({**data, "files": group}))
+        return results
+    finally:
+        try:
+            mdai_model.mdai_cancelled = None
+        except AttributeError:
+            pass
 
 
 @app.post("/load-files")
@@ -257,16 +357,39 @@ async def inference(request: Request):
         logger.exception(e)
         return _error_response("Error reading input data")
 
+    input_paths = _input_file_paths(data.get("files") or [])
+    cancelled = threading.Event()
+
     # Inference runs one at a time -- there is a single model and, usually, a single GPU -- but it
     # runs in a worker thread. Calling into the model directly from the event loop stalls every
     # other route for the length of the inference, including the readiness probe, which drops the
     # pod out of its service's endpoints for as long as it is doing useful work.
     async with app.state.lock:
+        watcher = asyncio.ensure_future(_watch_for_disconnect(request, cancelled))
         try:
-            results = await asyncio.to_thread(_predict, data)
+            results = await asyncio.to_thread(_predict, data, cancelled)
         except Exception as e:
             logger.exception(e)
             return _error_response(f"Error running model: {traceback.format_exc()}")
+        finally:
+            watcher.cancel()
+            try:
+                await watcher
+            except asyncio.CancelledError:
+                pass
+            # The input files have been read by now, whether the model succeeded, failed or was
+            # abandoned. Freeing them here rather than only on the success path is what keeps a
+            # failing model from filling the node's disk.
+            await asyncio.to_thread(_remove_input_files, input_paths)
+
+    if cancelled.is_set():
+        # Nobody is waiting for this response. Skip validating and packing a result that cannot be
+        # delivered, and say so plainly in the log so an abandoned request is visible as one.
+        logger.warning(
+            "Client disconnected before inference finished; discarding the result "
+            f"({len(input_paths)} input files)."
+        )
+        return Response(status_code=499, content="")
 
     try:
         await asyncio.to_thread(output_validator.validate, results)
@@ -311,6 +434,9 @@ if __name__ == "__main__":
         mdai_model = MDAIModel()
     except Exception:
         mdai_model_error = traceback.format_exc()
+
+    # A restarted container can come back to a volume still holding the previous process's inputs.
+    _clear_data_path()
 
     mdai_model_ready = True
 
