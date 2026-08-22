@@ -5,3 +5,8 @@
 **/*.h5
 __pycache__/
 .pytest_cache/
+
+# A model under test is copied in here to be built and run against this server. It is somebody
+# else's source and weights, and this repository is public -- never commit it.
+mdai/lib/
+mdai/Dockerfile

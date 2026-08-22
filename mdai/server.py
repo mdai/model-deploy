@@ -183,7 +183,8 @@ def _predict(data, cancelled=None):
     try:
         mdai_model.mdai_cancelled = cancelled
     except AttributeError:
-        # A model that does not accept the attribute simply cannot be cancelled early.
+        # A model that does not accept the attribute (__slots__, say) cannot be cancelled early.
+        logger.warning("Model does not accept `mdai_cancelled`; it will run to completion.")
         cancelled = None
     try:
         if not _is_grouped(files):
@@ -434,10 +435,10 @@ if __name__ == "__main__":
     except Exception:
         mdai_model_error = traceback.format_exc()
 
-    mdai_model_ready = True
-
     # A restarted container can come back to a volume still holding the previous process's inputs.
     _clear_data_path()
+
+    mdai_model_ready = True
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
