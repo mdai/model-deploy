@@ -82,6 +82,10 @@ class TestOutputValidator:
             {"cx": 50, "cy": 50, "rx": 10, "ry": 20},
             {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": "45"},
             {"cx": 50, "cy": 50, "rx": 10, "ry": None, "rotation": 0},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": True},
+            {"cx": 50, "cy": 50, "rx": float("nan"), "ry": 20, "rotation": 0},
+            {"cx": 50, "cy": float("inf"), "rx": 10, "ry": 20, "rotation": 0},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": 0, "x": 1},
         ]
 
         # Vertices and ellipses are allowed to be floats, unlike point coordinates.

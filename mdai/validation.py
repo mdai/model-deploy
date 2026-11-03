@@ -1,3 +1,6 @@
+import math
+
+
 class InvalidFormatException(Exception):
     pass
 
@@ -55,7 +58,7 @@ class OutputValidator:
             "box": None,
             "vertices": self.validate_data_with_vertices,
             "mask": self.validate_data_with_mask,
-            "ellipse": None,
+            "ellipse": self.validate_data_with_ellipse,
             "video_series_interval": None,
         }
 
@@ -153,6 +156,16 @@ class OutputValidator:
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
                 )
             )
+
+    def validate_data_with_ellipse(self, data):
+        # isinstance in validate_data lets bools through, and NaN/inf would reach the platform.
+        for key, value in data.items():
+            if isinstance(value, bool) or not math.isfinite(value):
+                raise InvalidFormatException(
+                    "Invalid ellipse value for key '{}'. Expected a finite number, got {}".format(
+                        key, value
+                    )
+                )
 
     def validate_data_with_mask(self, data):
         MASK_TYPE = [int, float]
