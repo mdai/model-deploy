@@ -78,12 +78,22 @@ class TestOutputValidator:
             {"x": 50, "y": 50, "z": 50},
             {"x": 0.1, "y": 0.5},
             {"x": 50, "y": 50, "width": 50.5, "height": 50.5},
+            # Ellipses need all five fields, each numeric.
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": "45"},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": None, "rotation": 0},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": True},
+            {"cx": 50, "cy": 50, "rx": float("nan"), "ry": 20, "rotation": 0},
+            {"cx": 50, "cy": float("inf"), "rx": 10, "ry": 20, "rotation": 0},
+            {"cx": 50, "cy": 50, "rx": 10, "ry": 20, "rotation": 0, "x": 1},
         ]
 
-        # Vertices are allowed to be floats, unlike point coordinates.
+        # Vertices and ellipses are allowed to be floats, unlike point coordinates.
         valid_data_fields = [
             {"vertices": [[1, 2], [3, 4]]},
             {"vertices": [[0.1, 0.2], [0.3, 0.4]]},
+            {"cx": 50, "cy": 60, "rx": 10, "ry": 20, "rotation": 0},
+            {"cx": 50.5, "cy": 60.25, "rx": 10.0, "ry": 20.75, "rotation": -30.5},
         ]
 
         output = dict(self.sample_output)

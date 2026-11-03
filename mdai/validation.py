@@ -1,3 +1,6 @@
+import math
+
+
 class InvalidFormatException(Exception):
     pass
 
@@ -34,6 +37,14 @@ class OutputValidator:
             "box": {"x": int, "y": int, "width": int, "height": int},
             "vertices": {"vertices": list},
             "mask": {"mask": list},
+            # Matches the annotator's ellipse data. Values may be floats; rotation is in degrees.
+            "ellipse": {
+                "cx": (int, float),
+                "cy": (int, float),
+                "rx": (int, float),
+                "ry": (int, float),
+                "rotation": (int, float),
+            },
             "video_series_interval": {
                 "start_frame_number": int,
                 "end_frame_number": int,
@@ -47,6 +58,7 @@ class OutputValidator:
             "box": None,
             "vertices": self.validate_data_with_vertices,
             "mask": self.validate_data_with_mask,
+            "ellipse": self.validate_data_with_ellipse,
             "video_series_interval": None,
         }
 
@@ -144,6 +156,16 @@ class OutputValidator:
                     [type(vertex[0]), type(vertex[1])], VERTEX_TYPE
                 )
             )
+
+    def validate_data_with_ellipse(self, data):
+        # isinstance in validate_data lets bools through, and NaN/inf would reach the platform.
+        for key, value in data.items():
+            if isinstance(value, bool) or not math.isfinite(value):
+                raise InvalidFormatException(
+                    "Invalid ellipse value for key '{}'. Expected a finite number, got {}".format(
+                        key, value
+                    )
+                )
 
     def validate_data_with_mask(self, data):
         MASK_TYPE = [int, float]
