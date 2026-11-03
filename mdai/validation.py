@@ -34,6 +34,14 @@ class OutputValidator:
             "box": {"x": int, "y": int, "width": int, "height": int},
             "vertices": {"vertices": list},
             "mask": {"mask": list},
+            # Matches the annotator's ellipse data. Values may be floats; rotation is in degrees.
+            "ellipse": {
+                "cx": (int, float),
+                "cy": (int, float),
+                "rx": (int, float),
+                "ry": (int, float),
+                "rotation": (int, float),
+            },
             "video_series_interval": {
                 "start_frame_number": int,
                 "end_frame_number": int,
@@ -47,6 +55,7 @@ class OutputValidator:
             "box": None,
             "vertices": self.validate_data_with_vertices,
             "mask": self.validate_data_with_mask,
+            "ellipse": None,
             "video_series_interval": None,
         }
 
