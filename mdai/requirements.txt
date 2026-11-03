@@ -1,7 +1,10 @@
-# Installed into every model image, after the model's own dependencies. Ranges rather than exact
-# pins because this file has to resolve across the Python versions the base images offer, and
-# because a model's own pins have to be able to win: pixel-deid, for example, runs an mmocr stack
-# that requires numpy < 2, and pip leaves an already-satisfied range alone.
+# Installed into every model image before the model's own dependencies: the Dockerfiles in docker/
+# install this file first (it is the build context's requirements.txt), then the model's
+# .mdai/requirements.txt (copied in as mdai-requirements.txt). The model's file runs last, so its
+# pins win, and pip will move a package outside the ranges below to satisfy them. Ranges rather
+# than exact pins because this file has to resolve across the Python versions the base images
+# offer. A model that needs a version held for the whole build sets a pip constraint file
+# (PIP_CONSTRAINT) in its custom Dockerfile, as pixel-deid does for numpy < 2.
 #
 # Upper bounds are deliberate. Every one of these had a major release that breaks callers -- numpy
 # 2, pydicom 3 (pixel_data_handlers moved to pixels), protobuf 4/5 -- and this file used to leave
