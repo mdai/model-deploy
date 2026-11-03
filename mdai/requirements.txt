@@ -1,4 +1,4 @@
-# Installed into every model image before the model's own dependencies: the Dockerfiles in docker/
+# Installed into every model image before the model's own requirements: the Dockerfiles in docker/
 # install this file first (it is the build context's requirements.txt), then the model's
 # .mdai/requirements.txt (copied in as mdai-requirements.txt). The model's file runs last, so its
 # pins win, and pip will move a package outside the ranges below to satisfy them. Ranges rather
