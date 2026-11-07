@@ -1,4 +1,4 @@
 keras-unet==0.1.2
-opencv-python-headless==4.4.0.42
-tensorflow==2.2.0
-matplotlib==3.4.2
+opencv-python-headless==5.0.0.93
+tensorflow[and-cuda]==2.21.0
+matplotlib==3.11.2

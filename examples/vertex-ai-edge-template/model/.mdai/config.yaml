@@ -1,2 +1,2 @@
-base_image: py37
+base_image: py313 # newest Python with TensorFlow wheels
 device_type: cpu

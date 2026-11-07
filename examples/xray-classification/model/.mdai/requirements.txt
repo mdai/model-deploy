@@ -1,4 +1,5 @@
-opencv-python-headless==4.5.5.62
-pillow==7.2.0
-tensorflow==2.2.0
-tf-explain==0.2.1
+opencv-python-headless==5.0.0.93
+pillow==13.0.0
+tensorflow[and-cuda]==2.21.0
+tf-keras==2.21.0
+tf-explain==0.3.1
