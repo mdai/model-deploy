@@ -185,7 +185,7 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
 
         # Create conda env based on python versipn specified in base image
         placeholder_dict["{{CONDA_ENV}}"].append(
-            f"RUN conda create -n mdai-env python={PYTHON_VERSION_DICT[base_image]} pip"
+            f"RUN conda create -y -n mdai-env python={PYTHON_VERSION_DICT[base_image]} pip"
         )
     placeholder_dict["{{PARENT_IMAGE}}"].append(command)
 
