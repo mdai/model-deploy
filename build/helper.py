@@ -16,7 +16,26 @@ PLACEHOLDER_VALUES = {
     "{{ENV}}": [],
 }
 
-PYTHON_VERSION_DICT = {"py37": "3.7", "py38": "3.8", "py39": "3.9", "py310": "3.10"}
+# Python versions offered for a model's conda env, oldest first. The floor is set by mdai/server.py,
+# which needs 3.9 (asyncio.to_thread). The ceiling is the newest Python that every package in
+# mdai/requirements.txt ships wheels for.
+PYTHON_VERSION_DICT = {
+    "py39": "3.9",
+    "py310": "3.10",
+    "py311": "3.11",
+    "py312": "3.12",
+    "py313": "3.13",
+    "py314": "3.14",
+}
+
+# Used when config.yaml does not set base_image: the newest version offered.
+DEFAULT_BASE_IMAGE = list(PYTHON_VERSION_DICT)[-1]
+
+# Base images that used to be offered but can no longer build or run the server, mapped to why.
+REMOVED_BASE_IMAGES = {
+    "py37": "Python 3.7 cannot install the server's dependencies",
+    "py38": "the server requires Python 3.9 or newer",
+}
 
 PARENT_IMAGE_DICT = {
     "cpu": "gcr.io/deeplearning-platform-release/base-cpu",
@@ -131,7 +150,7 @@ def copy_files(target_folder, docker_env):
 
 def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
     framework = None
-    base_image = config.get("base_image", "py37").lower()
+    base_image = str(config.get("base_image") or DEFAULT_BASE_IMAGE).lower()
     device_type = config.get("device_type", "cpu").lower()
     cuda_version = str(config.get("cuda_version", "11.0"))
     clara_version = config.get("clara_version", "4.1.0")
@@ -163,12 +182,21 @@ def resolve_parent_image(placeholder_dict, config, image_dict, mdai_folder):
         command = " ".join(["FROM", parent_image])
         dockerfile_path = "nvidia"
     else:
-        if base_image not in PYTHON_VERSION_DICT:
+        supported = ", ".join(list(PYTHON_VERSION_DICT) + ["nvidia", "custom"])
+        if base_image in REMOVED_BASE_IMAGES:
             print(
-                f"Base image '{base_image}' is not supported. Please choose from py37, py38, py39 or py310",
+                f"Base image '{base_image}' is no longer supported: "
+                f"{REMOVED_BASE_IMAGES[base_image]}. Set base_image in .mdai/config.yaml to one of "
+                f"{supported}, and update the model's requirements.txt for that Python version.",
                 file=sys.stderr,
             )
-            sys.exit()
+            sys.exit(1)
+        if base_image not in PYTHON_VERSION_DICT:
+            print(
+                f"Base image '{base_image}' is not supported. Please choose from {supported}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
         if device_type == "cpu":
             parent_image = image_dict.get("cpu")

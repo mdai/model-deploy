@@ -1,4 +1,4 @@
-base_image: <string> # base docker image. Currently only py37 is supported
+base_image: <string> # Python version for the model (py39, py310, py311, py312, py313 or py314), or nvidia/custom. Default is py314
 device_type: <string> # Can be one of two values (cpu/gpu) to indicate build type. Default is cpu
 cuda_version: <string> # cuda version to use for gpu tasks. Can be one of (11.0, 10.1 or 10.0). Default is 11.0
 env: <string: value> # some key-val pairs which can be passed to the server at runtime

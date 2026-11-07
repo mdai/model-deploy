@@ -105,7 +105,7 @@ if __name__ == "__main__":
         if config_file is not None:
             config = helper.process_config_file(config_file)
 
-        if config.get("base_image").lower() in ["nvidia", "custom"]:
+        if str(config.get("base_image") or "").lower() in ["nvidia", "custom"]:
             hot_reload_values["{{COPY}}"].append(
                 'RUN /bin/bash -c "pip install watchdog argh pyyaml"',
             )
