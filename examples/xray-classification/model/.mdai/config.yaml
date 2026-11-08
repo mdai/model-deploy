@@ -1,2 +1,6 @@
-base_image: py37
+base_image: py313 # newest Python with TensorFlow wheels
 device_type: gpu
+cuda_version: "12.4"
+env:
+  # tf-explain needs Keras 2; TensorFlow 2.16+ defaults to Keras 3. Load tf-keras instead.
+  TF_USE_LEGACY_KERAS: "1"
